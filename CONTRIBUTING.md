@@ -51,6 +51,15 @@ Before opening a Pull Request:
 3. Run `npm run build` inside `frontend/` if frontend files changed.
 4. Explain what changed, how it was tested, and any known limitations.
 5. Do not commit real PCAPs, secrets, generated reports, virtual environments, dependencies, or trained model binaries.
+6. Review `docs/PROJECT_CONTEXT.md` and update it if project state changed.
+
+## Project Context Maintenance
+
+- `docs/PROJECT_CONTEXT.md` is the canonical AI/team context file.
+- Every meaningful implementation PR must review it.
+- Update it whenever implementation status, architecture, contracts, dependencies, ownership, milestones, limitations, or repository structure materially change.
+- Never mark a feature implemented unless working code and relevant verification exist.
+- Context changes should normally be committed with the related implementation.
 
 ## Conventional commits
 

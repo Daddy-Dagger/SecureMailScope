@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FindingSchema",
+  "description": "Minimal schema definition for security findings identified by deterministic rules.",
+  "type": "object",
+  "properties": {
+    "finding_id": {
+      "type": "string",
+      "description": "Unique identifier for the finding type or rule"
+    },
+    "title": {
+      "type": "string",
+      "description": "Short descriptive title of the finding"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL", "INFO"],
+      "description": "Finding severity level"
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Detailed explanation of the security issue"
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "Recommended remediation steps"
+    }
+  },
+  "required": [
+    "finding_id",
+    "title",
+    "severity",
+    "explanation",
+    "recommendation"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "finding_id": "TLS-001",
+      "title": "Deprecated TLS version",
+      "severity": "HIGH",
+      "explanation": "The session used an outdated TLS version.",
+      "recommendation": "Disable outdated TLS versions."
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AnalysisResultSchema",
+  "description": "Top-level schema definition for PCAP analysis results.",
+  "type": "object",
+  "properties": {
+    "file": {
+      "type": "string",
+      "description": "Name or path of the analyzed PCAP file"
+    },
+    "packet_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total count of processed packets"
+    },
+    "summary": {
+      "type": "object",
+      "description": "Session counts per supported email protocol",
+      "properties": {
+        "smtp_sessions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of identified SMTP sessions"
+        },
+        "imap_sessions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of identified IMAP sessions"
+        },
+        "pop3_sessions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of identified POP3 sessions"
+        }
+      },
+      "required": [
+        "smtp_sessions",
+        "imap_sessions",
+        "pop3_sessions"
+      ],
+      "additionalProperties": false
+    },
+    "sessions": {
+      "type": "array",
+      "items": {
+        "$ref": "session_schema.json"
+      },
+      "description": "Extracted email protocol sessions"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "finding_schema.json"
+      },
+      "description": "Security findings produced by security rules"
+    },
+    "overall_score": {
+      "type": ["number", "null"],
+      "description": "Overall security posture score (null until ML/scoring is implemented)"
+    },
+    "risk_level": {
+      "type": ["string", "null"],
+      "description": "Overall risk classification level (null until risk assessment is implemented)"
+    }
+  },
+  "required": [
+    "file",
+    "packet_count",
+    "summary",
+    "sessions",
+    "findings",
+    "overall_score",
+    "risk_level"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "file": "sample.pcap",
+      "packet_count": 4281,
+      "summary": {
+        "smtp_sessions": 1,
+        "imap_sessions": 0,
+        "pop3_sessions": 0
+      },
+      "sessions": [],
+      "findings": [],
+      "overall_score": null,
+      "risk_level": null
+    }
+  ]
+}

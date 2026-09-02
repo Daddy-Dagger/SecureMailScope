@@ -1,0 +1,2 @@
+"""SecureMailScope core analysis package."""
+

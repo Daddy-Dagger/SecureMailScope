@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SessionSchema",
+  "description": "Minimal schema definition for an email protocol session extracted during PCAP analysis.",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Unique session identifier"
+    },
+    "protocol": {
+      "type": "string",
+      "enum": ["SMTP", "IMAP", "POP3"],
+      "description": "Application layer email protocol"
+    },
+    "client_ip": {
+      "type": "string",
+      "description": "Client IPv4 or IPv6 address"
+    },
+    "client_port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "Client source port"
+    },
+    "server_ip": {
+      "type": "string",
+      "description": "Server IPv4 or IPv6 address"
+    },
+    "server_port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "Server destination port"
+    },
+    "packet_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of packets in this session"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Session start timestamp (ISO 8601)"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Session end timestamp (ISO 8601)"
+    }
+  },
+  "required": [
+    "session_id",
+    "protocol",
+    "client_ip",
+    "client_port",
+    "server_ip",
+    "server_port",
+    "packet_count",
+    "start_time",
+    "end_time"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "session_id": "smtp-001",
+      "protocol": "SMTP",
+      "client_ip": "192.168.1.10",
+      "client_port": 51544,
+      "server_ip": "192.168.1.20",
+      "server_port": 25,
+      "packet_count": 63,
+      "start_time": "2026-09-02T10:10:10Z",
+      "end_time": "2026-09-02T10:10:15Z"
+    }
+  ]
+}

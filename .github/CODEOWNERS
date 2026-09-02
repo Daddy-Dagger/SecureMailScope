@@ -1,0 +1,38 @@
+# ==============================================================================
+# SecureMailScope CODEOWNERS
+# ==============================================================================
+# GitHub Code Owners configuration for the 6-member team.
+# Rules follow standard GitHub CODEOWNERS precedence:
+# The LAST matching pattern takes precedence.
+#
+# Specific rules must be placed after broader rules (e.g. /docs/api.md after /docs/).
+# ==============================================================================
+
+# Lead / Member 1
+/core/pcap/                    @LEAD_GITHUB
+/core/protocols/               @LEAD_GITHUB
+/core/tls/                     @LEAD_GITHUB
+/core/ml/                      @LEAD_GITHUB
+/shared/contracts/             @LEAD_GITHUB
+
+# Member 2 - Datasets & test data generation
+/datasets/                     @MEMBER2_GITHUB
+/scripts/generate_test_data.py @MEMBER2_GITHUB
+
+# Member 3 - Deterministic Security Rules
+/core/rules/                   @MEMBER3_GITHUB
+
+# Member 5 - Frontend
+/frontend/                     @MEMBER5_GITHUB
+
+# Member 6 - Tests and General Documentation
+/tests/                        @MEMBER6_GITHUB
+/docs/                         @MEMBER6_GITHUB
+/README.md                     @MEMBER6_GITHUB
+/CONTRIBUTING.md               @MEMBER6_GITHUB
+
+# Member 4 - Backend, Reports, and API Documentation
+# Placed after /docs/ so /docs/api.md takes precedence over general /docs/
+/backend/                      @MEMBER4_GITHUB
+/reports/                      @MEMBER4_GITHUB
+/docs/api.md                   @MEMBER4_GITHUB

@@ -250,10 +250,24 @@ SecureMailScope/
 │   ├── app/
 │   │   ├── main.py
 │   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── README.md
+│   │   │   └── analysis.py
 │   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── README.md
+│   │   │   └── analysis.py
 │   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── README.md
+│   │   │   └── analysis_service.py
 │   │   └── utils/
+│   │       ├── __init__.py
+│   │       └── README.md
 │   └── tests/
+│       ├── __init__.py
+│       ├── README.md
+│       ├── test_analysis.py
 │       └── test_health.py
 │
 ├── core/
@@ -572,6 +586,7 @@ test(api): add health endpoint regression test
 - backend starter
 - frontend starter
 - `/health` endpoint
+- backend analysis API foundation (`POST /api/analyze`, Pydantic models matching shared contracts, `AnalysisService` boundary, input validation, and tests)
 - TShark verification
 - pytest setup
 - project documentation
@@ -899,6 +914,7 @@ Example:
 ```text
 2026-09-02 — develop — Initial development foundation, ownership boundaries, CODEOWNERS, and shared contracts established.
 2026-09-02 — main — Established canonical docs/PROJECT_CONTEXT.md, docs/AGENT_WORKFLOW.md, PR template, and context maintenance procedures.
+2026-09-02 — member4/backend-reports — Implemented backend analysis API foundation and updated API documentation.
 ```
 
 ---

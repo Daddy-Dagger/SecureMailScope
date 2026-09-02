@@ -53,6 +53,45 @@ Before opening a Pull Request:
 5. Do not commit real PCAPs, secrets, generated reports, virtual environments, dependencies, or trained model binaries.
 6. Review `docs/PROJECT_CONTEXT.md` and update it if project state changed.
 
+## Beginner Git Workflow
+
+Each member works only on their assigned branch.
+
+### Daily work
+
+**macOS/Linux:**
+
+```bash
+./scripts/checkpoint.sh "what I worked on"
+```
+
+**Windows:**
+
+```powershell
+.\scripts\checkpoint.ps1 "what I worked on"
+```
+
+This command automatically:
+- stages changes
+- commits changes
+- pushes to the member branch
+- updates the member's Draft PR
+
+### Rules
+
+Members should NOT:
+- push directly to `develop`
+- push directly to `main`
+- merge their own unfinished work
+
+### When work is stable
+
+When work is stable:
+- tell the lead
+- mark PR Ready for Review
+- review
+- merge into `develop`
+
 ## Project Context Maintenance
 
 - `docs/PROJECT_CONTEXT.md` is the canonical AI/team context file.

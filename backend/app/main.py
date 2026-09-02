@@ -5,6 +5,8 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.analysis import router as analysis_router
+
 
 def _allowed_origins() -> list[str]:
     configured = os.getenv(
@@ -19,9 +21,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins(),
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.include_router(analysis_router)
 
 
 @app.get("/health")

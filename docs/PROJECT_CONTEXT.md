@@ -587,6 +587,11 @@ test(api): add health endpoint regression test
 - frontend starter
 - `/health` endpoint
 - backend analysis API foundation (`POST /api/analyze`, Pydantic models matching shared contracts, `AnalysisService` boundary, input validation, and tests)
+- backend core-engine analysis integration boundary (`CoreAnalysisEngine` protocol, `DeferredCoreEngineAdapter`, strict Pydantic validation of core outputs against shared contracts, and boundary integration tests)
+- JSON report generation (`reports/json_report.py`, deterministic serialization, strict contract validation, and comprehensive tests)
+- HTML report generation (`reports/html_report.py`, standalone offline rendering, embedded CSS, security auto-escaping, and comprehensive tests)
+- PDF report generation (`reports/pdf_report.py`, standalone printable ReportLab rendering, two-pass numbering canvas, and comprehensive tests)
+- backend report download/export API (`POST /api/reports/export`, supporting JSON, HTML, and PDF downloadable attachments, in-memory PDF generation, MIME types, and integration tests)
 - TShark verification
 - pytest setup
 - project documentation
@@ -611,7 +616,7 @@ test(api): add health endpoint regression test
 - ML model
 - anomaly detection
 - final dashboard
-- production reports
+- integration with actual core-engine output
 - before/after comparison
 
 ---
@@ -915,6 +920,11 @@ Example:
 2026-09-02 — develop — Initial development foundation, ownership boundaries, CODEOWNERS, and shared contracts established.
 2026-09-02 — main — Established canonical docs/PROJECT_CONTEXT.md, docs/AGENT_WORKFLOW.md, PR template, and context maintenance procedures.
 2026-09-02 — member4/backend-reports — Implemented backend analysis API foundation and updated API documentation.
+2026-09-03 — member4/backend-reports — Prepared backend analysis integration boundary for core-engine structured results.
+2026-09-03 — member4/backend-reports — Implemented and verified JSON report generation.
+2026-09-03 — member4/backend-reports — Implemented and verified offline HTML report generation.
+2026-09-03 — member4/backend-reports — Implemented and verified PDF report generation.
+2026-09-03 — member4/backend-reports — Implemented backend report download/export API, supporting JSON, HTML, and PDF with full test coverage and API docs.
 ```
 
 ---

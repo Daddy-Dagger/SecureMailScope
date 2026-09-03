@@ -6,10 +6,12 @@ from backend.app.models.analysis import (
     ProtocolSummary,
     SessionSchema,
 )
+from backend.app.models.reports import ReportExportRequest
 
 __all__ = [
     "AnalysisResultResponse",
     "FindingSchema",
     "ProtocolSummary",
     "SessionSchema",
+    "ReportExportRequest",
 ]

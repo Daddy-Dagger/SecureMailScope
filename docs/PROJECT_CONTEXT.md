@@ -227,6 +227,7 @@ The development foundation is complete and has been pushed to GitHub.
 ```text
 SecureMailScope/
 ├── README.md
+├── AGENTS.md
 ├── CONTRIBUTING.md
 ├── .env.example
 ├── .gitignore
@@ -321,6 +322,10 @@ SecureMailScope/
 ├── scripts/
 │   ├── setup.sh
 │   ├── setup.ps1
+│   ├── checkpoint.sh
+│   ├── checkpoint.ps1
+│   ├── team-status.sh
+│   ├── team-status.ps1
 │   ├── check_tshark.py
 │   └── generate_test_data.py
 │
@@ -543,6 +548,27 @@ member5/frontend
 member6/testing-docs
 ```
 
+### Team Collaboration Model
+
+The team follows a simplified, beginner-friendly Git model designed for six concurrent contributors:
+
+- **One permanent branch per member:**
+  - `lead/core-engine`
+  - `member2/pcap-lab`
+  - `member3/security-rules`
+  - `member4/backend-reports`
+  - `member5/frontend`
+  - `member6/testing-docs`
+- **One permanent Draft PR per member:** Each member branch targets `develop` with a permanent Draft PR. Pushing commits automatically updates this live record of work for team visibility without premature merging.
+- **One-command checkpoint scripts:** Members do not need complex multi-step Git commands. They run:
+  - macOS/Linux: `./scripts/checkpoint.sh "what I worked on"`
+  - Windows: `.\scripts\checkpoint.ps1 "what I worked on"`
+- **State hierarchy:**
+  - `docs/PROJECT_CONTEXT.md` = global confirmed project state
+  - Draft PRs = live in-progress work
+  - `develop` = confirmed integrated state
+  - `main` = stable / demo-ready release state
+
 ### Rules
 
 - Do not push feature work directly to `main`.
@@ -594,6 +620,7 @@ test(api): add health endpoint regression test
 - CODEOWNERS
 - shared JSON contracts
 - branch/workflow planning
+- beginner collaboration framework (`AGENTS.md`, POSIX and Windows checkpoint/team-status scripts, permanent Draft PR workflow)
 - clean GitHub repository
 
 ### NOT implemented yet
@@ -915,6 +942,7 @@ Example:
 2026-09-02 — develop — Initial development foundation, ownership boundaries, CODEOWNERS, and shared contracts established.
 2026-09-02 — main — Established canonical docs/PROJECT_CONTEXT.md, docs/AGENT_WORKFLOW.md, PR template, and context maintenance procedures.
 2026-09-02 — member4/backend-reports — Implemented backend analysis API foundation and updated API documentation.
+2026-09-02 — lead/core-engine — Established beginner collaboration model (AGENTS.md, checkpoint and team-status scripts for POSIX & Windows, permanent Draft PR workflow).
 ```
 
 ---

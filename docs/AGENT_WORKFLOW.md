@@ -56,6 +56,31 @@ REPORT RESULTS
 
 ---
 
+## Daily Member Flow
+
+```text
+DAILY MEMBER FLOW
+
+READ CONTEXT
+→ WORK ON ASSIGNED BRANCH
+→ TEST
+→ RUN CHECKPOINT SCRIPT
+→ DRAFT PR UPDATES
+→ CONTINUE WORK
+
+WHEN READY
+
+MARK PR READY
+→ REVIEW
+→ MERGE INTO develop
+```
+
+Do not create manual per-member status files for every small change.
+Draft PRs are the live in-progress status.
+
+---
+
 ## Mandatory Ending Instruction
 
 Before finishing, update docs/PROJECT_CONTEXT.md if this task changed the real project state. If it did not, explicitly state that the file was reviewed and no update was required.
+

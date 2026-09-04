@@ -70,8 +70,18 @@ status, offered/selected versions, selected cipher ID/name, factual key-exchange
 family/group metadata, and packet evidence. The TLS 1.3 selected version comes
 from ServerHello `supported_versions` when observable rather than the legacy
 record/hello compatibility value. Unknown cipher or group IDs remain available
-with a null name; no weak/strong classification is performed. Certificate fields
-remain deferred.
+with a null name; no weak/strong classification is performed.
+
+Milestone 4 adds optional `certificates` and `crypto_features` structures.
+`certificates` contains the ordered X.509 certificate chain (leaf at index 0),
+including subject/issuer RFC 4514 strings, serial number, SHA-256 fingerprint,
+validity dates (ISO 8601 UTC), days remaining relative to capture reference time,
+SANs, factual `self_issued` and verified `self_signed` flags, public-key metadata,
+signature algorithm, and frame evidence (`certificate_frame`).
+`crypto_features` provides a normalized factual feature vector summarizing TLS
+version, cipher suite, key exchange, named group, and leaf certificate properties
+for downstream rules and ML without assigning security risk scores.
+Both fields are optional, preserving backward compatibility with Milestones 1–3.
 
 ### Finding Schema Example
 

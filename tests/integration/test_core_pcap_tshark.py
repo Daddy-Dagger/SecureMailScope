@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import shutil
 
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.x509.oid import NameOID
 import pytest
 from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether
@@ -67,6 +73,14 @@ def _tls13_server_hello() -> bytes:
         + extensions
     )
     return _tls_handshake_record(2, body)
+
+
+def _tls12_server_certificate(cert_ders: list[bytes]) -> bytes:
+    payload = b""
+    for cert in cert_ders:
+        payload += len(cert).to_bytes(3, "big") + cert
+    certs_list = len(payload).to_bytes(3, "big") + payload
+    return _tls_handshake_record(11, certs_list)
 
 
 def test_real_pcap_groups_bidirectional_smtp_session(tmp_path: Path) -> None:
@@ -176,6 +190,99 @@ def test_generated_real_pcap_extracts_tls13_server_selection(tmp_path: Path) -> 
     }
     assert session["tls"]["evidence"]["client_hello_frame"] == 1
     assert session["tls"]["evidence"]["server_hello_frame"] == 2
+
+
+def test_generated_real_pcap_extracts_x509_certificate_chain(tmp_path: Path) -> None:
+    """Generated test PCAP fixture for X.509 certificate extraction (controlled test fixture, not team PCAP dataset)."""
+    capture = tmp_path / "implicit-tls12-certs.pcap"
+
+    root_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    root_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test Root CA")])
+    now = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
+    root_cert = (
+        x509.CertificateBuilder()
+        .subject_name(root_name)
+        .issuer_name(root_name)
+        .public_key(root_key.public_key())
+        .serial_number(1)
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=365))
+        .sign(root_key, hashes.SHA256())
+    )
+    root_der = root_cert.public_bytes(Encoding.DER)
+
+    server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    server_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "mail.example.com")])
+    server_cert = (
+        x509.CertificateBuilder()
+        .subject_name(server_name)
+        .issuer_name(root_name)
+        .public_key(server_key.public_key())
+        .serial_number(2)
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=90))
+        .sign(root_key, hashes.SHA256())
+    )
+    server_der = server_cert.public_bytes(Encoding.DER)
+
+    ch = b"\x16\x03\x03\x00\x30\x01\x00\x00\x2c\x03\x03" + (b"\x01" * 32) + b"\x00\x00\x02\xc0\x2f\x01\x00\x00\x00"
+    sh = b"\x16\x03\x03\x00\x26\x02\x00\x00\x22\x03\x03" + (b"\x02" * 32) + b"\x00\xc0\x2f\x00\x00\x00"
+    cert_rec = _tls12_server_certificate([server_der, root_der])
+
+    _write_packets(
+        capture,
+        [
+            Ether()
+            / IP(src="192.0.2.10", dst="192.0.2.20")
+            / TCP(sport=51544, dport=465, flags="PA", seq=1)
+            / Raw(ch),
+            Ether()
+            / IP(src="192.0.2.20", dst="192.0.2.10")
+            / TCP(sport=465, dport=51544, flags="PA", seq=1)
+            / Raw(sh),
+            Ether()
+            / IP(src="192.0.2.20", dst="192.0.2.10")
+            / TCP(sport=465, dport=51544, flags="PA", seq=len(sh) + 1)
+            / Raw(cert_rec),
+        ],
+    )
+
+    result = analyze_pcap_file(capture)
+    session = result["sessions"][0]
+
+    assert len(session["certificates"]) == 2
+
+    leaf = session["certificates"][0]
+    assert leaf["chain_index"] == 0
+    assert leaf["subject"] == "CN=mail.example.com"
+    assert leaf["issuer"] == "CN=Test Root CA"
+    assert leaf["serial_number"] == "0x2"
+    assert leaf["public_key"]["algorithm"] == "RSA"
+    assert leaf["public_key"]["size_bits"] == 2048
+    assert leaf["signature_algorithm"] == "sha256WithRSAEncryption"
+    assert leaf["self_issued"] is False
+    assert leaf["self_signed"] is False
+    assert leaf["evidence"]["certificate_frame"] == 3
+
+    root = session["certificates"][1]
+    assert root["chain_index"] == 1
+    assert root["subject"] == "CN=Test Root CA"
+    assert root["issuer"] == "CN=Test Root CA"
+    assert root["self_issued"] is True
+    assert root["self_signed"] is True
+
+    assert session["crypto_features"] == {
+        "tls_version": "TLS 1.2",
+        "cipher_suite": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+        "key_exchange": "ECDHE",
+        "named_group": None,
+        "certificate_public_key_algorithm": "RSA",
+        "certificate_public_key_bits": 2048,
+        "certificate_signature_algorithm": "sha256WithRSAEncryption",
+        "certificate_days_remaining": leaf["days_remaining"],
+        "certificate_self_signed": False,
+    }
+    assert session["tls"]["evidence"]["certificate_frame"] == 3
 
 
 def test_real_no_email_pcap_returns_no_sessions(tmp_path: Path) -> None:

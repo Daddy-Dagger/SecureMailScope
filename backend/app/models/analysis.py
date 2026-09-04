@@ -121,6 +121,7 @@ class TLSHandshakeEvidence(BaseModel):
     key_exchange_frame: int | None = Field(default=None, ge=1)
     handshake_complete_frame: int | None = Field(default=None, ge=1)
     alert_frame: int | None = Field(default=None, ge=1)
+    certificate_frame: int | None = Field(default=None, ge=1)
 
 
 class TLSHandshakeMetadata(BaseModel):
@@ -146,6 +147,61 @@ class TLSHandshakeMetadata(BaseModel):
     cipher_suite: TLSCipherSuite | None
     key_exchange: TLSKeyExchange | None
     evidence: TLSHandshakeEvidence
+
+
+class CertificatePublicKey(BaseModel):
+    """Observable public key algorithm, bit length, and curve."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    algorithm: str
+    size_bits: int | None = None
+    curve: str | None = None
+
+
+class CertificateEvidence(BaseModel):
+    """Packet references supporting observed certificate data."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    certificate_frame: int | None = Field(default=None, ge=1)
+
+
+class CertificateMetadata(BaseModel):
+    """Observable X.509 certificate metadata without trust validation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    chain_index: int = Field(..., ge=0)
+    subject: str
+    issuer: str
+    serial_number: str
+    fingerprint_sha256: str | None = None
+    not_before: str
+    not_after: str
+    days_remaining: int | None = None
+    subject_alternative_names: list[str] = Field(default_factory=list)
+    self_issued: bool
+    self_signed: bool | None = None
+    public_key: CertificatePublicKey
+    signature_algorithm: str | None = None
+    evidence: CertificateEvidence = Field(default_factory=CertificateEvidence)
+
+
+class CryptoFeatures(BaseModel):
+    """Normalized factual cryptographic feature vector."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tls_version: str | None = None
+    cipher_suite: str | None = None
+    key_exchange: str | None = None
+    named_group: str | None = None
+    certificate_public_key_algorithm: str | None = None
+    certificate_public_key_bits: int | None = None
+    certificate_signature_algorithm: str | None = None
+    certificate_days_remaining: int | None = None
+    certificate_self_signed: bool | None = None
 
 
 class SessionSchema(BaseModel):
@@ -196,6 +252,14 @@ class SessionSchema(BaseModel):
     tls: TLSHandshakeMetadata | None = Field(
         default=None,
         description="Observable TLS handshake metadata",
+    )
+    certificates: list[CertificateMetadata] = Field(
+        default_factory=list,
+        description="Observable X.509 certificate chain metadata",
+    )
+    crypto_features: CryptoFeatures | None = Field(
+        default=None,
+        description="Normalized factual cryptographic feature summary",
     )
 
 

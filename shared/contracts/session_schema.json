@@ -185,12 +185,98 @@
             "selected_cipher_frame": {"type": "integer", "minimum": 1},
             "key_exchange_frame": {"type": "integer", "minimum": 1},
             "handshake_complete_frame": {"type": "integer", "minimum": 1},
-            "alert_frame": {"type": "integer", "minimum": 1}
+            "alert_frame": {"type": "integer", "minimum": 1},
+            "certificate_frame": {"type": "integer", "minimum": 1}
           },
           "additionalProperties": false
         }
       },
       "required": ["detected", "handshake_status", "offered_versions", "offered_groups", "version", "cipher_suite", "key_exchange", "evidence"],
+      "additionalProperties": false
+    },
+    "certificates": {
+      "type": "array",
+      "description": "Observable X.509 certificate chain metadata in order (leaf at index 0).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "chain_index": {"type": "integer", "minimum": 0},
+          "subject": {"type": "string"},
+          "issuer": {"type": "string"},
+          "serial_number": {"type": "string"},
+          "fingerprint_sha256": {"type": ["string", "null"]},
+          "not_before": {"type": "string"},
+          "not_after": {"type": "string"},
+          "days_remaining": {"type": ["integer", "null"]},
+          "subject_alternative_names": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "self_issued": {"type": "boolean"},
+          "self_signed": {"type": ["boolean", "null"]},
+          "public_key": {
+            "type": "object",
+            "properties": {
+              "algorithm": {"type": "string"},
+              "size_bits": {"type": ["integer", "null"]},
+              "curve": {"type": ["string", "null"]}
+            },
+            "required": ["algorithm", "size_bits", "curve"],
+            "additionalProperties": false
+          },
+          "signature_algorithm": {"type": ["string", "null"]},
+          "evidence": {
+            "type": "object",
+            "properties": {
+              "certificate_frame": {"type": ["integer", "null"], "minimum": 1}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "chain_index",
+          "subject",
+          "issuer",
+          "serial_number",
+          "fingerprint_sha256",
+          "not_before",
+          "not_after",
+          "days_remaining",
+          "subject_alternative_names",
+          "self_issued",
+          "self_signed",
+          "public_key",
+          "signature_algorithm",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "crypto_features": {
+      "type": ["object", "null"],
+      "description": "Normalized factual cryptographic feature vector extracted from handshake and certificate evidence.",
+      "properties": {
+        "tls_version": {"type": ["string", "null"]},
+        "cipher_suite": {"type": ["string", "null"]},
+        "key_exchange": {"type": ["string", "null"]},
+        "named_group": {"type": ["string", "null"]},
+        "certificate_public_key_algorithm": {"type": ["string", "null"]},
+        "certificate_public_key_bits": {"type": ["integer", "null"]},
+        "certificate_signature_algorithm": {"type": ["string", "null"]},
+        "certificate_days_remaining": {"type": ["integer", "null"]},
+        "certificate_self_signed": {"type": ["boolean", "null"]}
+      },
+      "required": [
+        "tls_version",
+        "cipher_suite",
+        "key_exchange",
+        "named_group",
+        "certificate_public_key_algorithm",
+        "certificate_public_key_bits",
+        "certificate_signature_algorithm",
+        "certificate_days_remaining",
+        "certificate_self_signed"
+      ],
       "additionalProperties": false
     }
   },
@@ -237,6 +323,18 @@
         "cipher_suite": null,
         "key_exchange": null,
         "evidence": {}
+      },
+      "certificates": [],
+      "crypto_features": {
+        "tls_version": null,
+        "cipher_suite": null,
+        "key_exchange": null,
+        "named_group": null,
+        "certificate_public_key_algorithm": null,
+        "certificate_public_key_bits": null,
+        "certificate_signature_algorithm": null,
+        "certificate_days_remaining": null,
+        "certificate_self_signed": null
       }
     }
   ]

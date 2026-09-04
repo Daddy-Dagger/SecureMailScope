@@ -99,6 +99,18 @@ def test_smtp_bidirectional_packets_form_one_session() -> None:
                 "key_exchange": None,
                 "evidence": {},
             },
+            "certificates": [],
+            "crypto_features": {
+                "tls_version": None,
+                "cipher_suite": None,
+                "key_exchange": None,
+                "named_group": None,
+                "certificate_public_key_algorithm": None,
+                "certificate_public_key_bits": None,
+                "certificate_signature_algorithm": None,
+                "certificate_days_remaining": None,
+                "certificate_self_signed": None,
+            },
         }
     ]
 

@@ -201,7 +201,7 @@ Remote repository:
 https://github.com/Daddy-Dagger/SecureMailScope.git
 ```
 
-Milestones 1, 2, and 3 are integrated into `develop` (Milestone 3 merged at `c7e4706`). The local and remote `lead/core-engine` and `develop` branches were synchronized at that commit. The lead branch now contains the verified Milestone 4 X.509 certificate and cryptographic feature extraction implementation.
+Milestones 1, 2, 3, and 4 are integrated into `develop` (Milestone 4 merged at `7a930fd`). The local and remote `lead/core-engine` and `develop` branches are synchronized at that commit. Milestone 5 (deterministic cryptographic security rules) is assigned to `member3/security-rules`; `lead/core-engine` has confirmed core output and contract readiness.
 
 ### Verified working setup
 
@@ -638,8 +638,8 @@ test(api): add health endpoint regression test
 - Member 4 backend/reporting work from commit `644ea76` integrated into `develop` by merge commit `fcb7d37` and re-verified
 - **Milestone 1 VERIFIED on `lead/core-engine`:** validated PCAP/PCAPNG/CAP reading through TShark, total packet counting, bidirectional TCP-flow grouping, SMTP/IMAP/POP3 detection, client/server endpoint identification, per-session packet/timestamp metadata, and shared-contract-compatible structured output
 - **Milestone 2 VERIFIED on `lead/core-engine`:** reconstructs ordered, normalized STARTTLS-relevant plaintext events; detects SMTP STARTTLS, IMAP STARTTLS, POP3 STLS, explicit rejection versus incomplete evidence, implicit TLS on ports 465/993/995, and the first TLS record after an upgrade; emits packet/timestamp evidence without retaining arbitrary email bodies or credentials
-- **Milestone 1, 2, and 3 INTEGRATED into `develop`:** Milestone 3 commit `e163101` was merged into `develop` through merge commit `c7e4706`, verified with 117 tests plus frontend/TShark/compile/diff checks, and pushed to `origin/develop` and `origin/lead/core-engine`.
-- **Milestone 4 VERIFIED on `lead/core-engine`:** extracts factual ordered X.509 certificate chains (`chain_index: 0` for leaf), subject/issuer DNs, serial numbers, SHA-256 fingerprints, ISO 8601 UTC validity dates, days remaining relative to forensic capture timestamps, SANs, factual `self_issued` (`subject == issuer`), cryptographically verified `self_signed`, public-key metadata (algorithm, size_bits, curve), signature algorithms, and certificate frame evidence. Aggregates normalized cryptographic feature vectors (`crypto_features`) for downstream rules and ML. Handles missing certificates gracefully (e.g., encrypted TLS 1.3 -> `certificates: []`, `crypto_features` cert fields null).
+- **Milestone 1, 2, 3, and 4 INTEGRATED into `develop`:** Milestone 4 commit `99f57e3` was merged into `develop` through merge commit `7a930fd`, re-verified with 140 tests plus frontend production build, TShark 4.6.8, python compileall, schema checks, and `git diff --check`, and pushed to `origin/develop` and `origin/lead/core-engine`.
+- **Milestone 4 X.509 certificate and cryptographic feature extraction:** extracts factual ordered X.509 certificate chains (`chain_index: 0` for leaf), subject/issuer DNs, serial numbers, SHA-256 fingerprints, ISO 8601 UTC validity dates, days remaining relative to forensic capture timestamps, SANs, factual `self_issued` (`subject == issuer`), cryptographically verified `self_signed`, public-key metadata (algorithm, size_bits, curve), signature algorithms, and certificate frame evidence. Aggregates normalized cryptographic feature vectors (`crypto_features`) for downstream rules and ML. Handles missing certificates gracefully (e.g., encrypted TLS 1.3 -> `certificates: []`, `crypto_features` cert fields null).
 - the shared session contract now has additive optional `application_events`, `transport_security`, `tls`, `certificates`, and `crypto_features` fields; the backend Pydantic session model has the minimum corresponding compatibility update while continuing to accept Milestone 1, 2, and 3 session objects
 - `PcapAnalysisEngine` implements Member 4's `CoreAnalysisEngine` protocol and is verified through `AnalysisService` dependency injection
 - TShark verification
@@ -666,11 +666,11 @@ test(api): add health endpoint regression test
 
 ## 13. Current Milestone
 
-### Milestone 4 — IMPLEMENTED AND VERIFIED on `lead/core-engine`
+### Milestone 4 — INTEGRATED into develop
 
 > **Identified TLS session → extract factual X.509 certificate chain, cryptographic metadata, and normalized crypto feature vector**
 
-Milestones 1, 2, and 3 are integrated into `develop` (Milestone 3 merged at `c7e4706`). The lead branch was synchronized to that exact commit before Milestone 4 began. Milestone 4 is implemented and verified on the lead branch.
+Milestones 1, 2, 3, and 4 are integrated into `develop` (Milestone 4 merged at `7a930fd`). The local and remote `lead/core-engine` and `develop` branches are synchronized at that commit.
 
 ### Required output
 
@@ -845,6 +845,14 @@ Milestones 1, 2, and 3 are integrated into `develop` (Milestone 3 merged at `c7e
 - report redesign
 - database persistence
 
+### Milestone 5 Preparation — Deterministic Cryptographic Security Rules
+
+- **Ownership:** `member3/security-rules` owns `core/rules/` and rule implementation.
+- **Member 3 branch audit:** `origin/member3/security-rules` is currently clean at initial commit `ceccb41` (14 commits behind `develop`), with zero unmerged rule commits.
+- **Lead preparation:** `lead/core-engine` has delivered and verified all upstream inputs: protocol identification, STARTTLS transition states, TLS handshake metadata, ordered X.509 certificate chains, and normalized `crypto_features`.
+- **Contract readiness:** `shared/contracts/finding_schema.json` and backend `FindingSchema` are ready for deterministic findings (`finding_id`, `title`, `severity`, `explanation`, `recommendation`). Proposing minimal backward-compatible addition of optional `session_id` and `evidence` (`frame_number`, `observed_value`) to allow linking findings to session and frame evidence without breaking contract validation.
+- **Next step for Member 3:** Synchronize `member3/security-rules` with latest `develop` (at `7a930fd`) and implement deterministic security rules and unit tests on `member3/security-rules`.
+
 ---
 
 ## 14. Planned Milestone Order
@@ -852,8 +860,8 @@ Milestones 1, 2, and 3 are integrated into `develop` (Milestone 3 merged at `c7e
 1. **INTEGRATED into develop:** PCAP → SMTP/IMAP/POP3 sessions → JSON
 2. **INTEGRATED into develop:** Session reconstruction + STARTTLS/STLS and implicit-TLS detection
 3. **INTEGRATED into develop:** TLS handshake metadata extraction
-4. **VERIFIED on lead branch:** X.509 certificate and cryptographic feature extraction
-5. **NEXT only after integration and explicit confirmation:** Deterministic security rules
+4. **INTEGRATED into develop:** X.509 certificate and cryptographic feature extraction
+5. **NEXT / IN-PROGRESS on `member3/security-rules`:** Deterministic security rules
 6. Generate controlled PCAP dataset
 7. Risk scoring
 8. ML feature dataset + Isolation Forest anomaly detection
@@ -967,9 +975,10 @@ If this file is provided at the beginning of a new chat, the agent should:
 
 ## 20. Immediate Next Action
 
-> Integrate Milestone 4 into `develop`, then begin Milestone 5: deterministic cryptographic security rules.
+> Synchronize `member3/security-rules` with latest `develop` (at `7a930fd`), then begin Milestone 5: deterministic cryptographic security rules on `member3/security-rules`.
 
-Do not begin Milestone 5 or any rules, scoring, ML, or dashboard work without explicit confirmation.
+`lead/core-engine` has delivered all necessary upstream inputs (protocol detection, STARTTLS states, TLS handshake metadata, X.509 certificate chains, and normalized crypto features) and verified shared contract readiness. No unmerged rule code exists on `origin/member3/security-rules`.
+Do not implement risk scoring or ML yet.
 
 
 ---
@@ -1094,6 +1103,8 @@ Example:
 2026-09-04 — lead/core-engine — Synchronized with develop at 625cb88, then implemented and verified Milestone 3 TLS handshake version, cipher, key-exchange, state, and evidence extraction (117 tests passed).
 2026-09-04 — develop — Integrated verified Milestone 3 TLS handshake metadata extraction through merge commit c7e4706 and pushed the synchronized integration state.
 2026-09-04 — lead/core-engine — Synchronized with develop at c7e4706, then implemented and verified Milestone 4 X.509 certificate chain and cryptographic feature extraction (140 tests passed).
+2026-09-04 — develop — Integrated verified Milestone 4 X.509 certificate and cryptographic feature extraction through merge commit 7a930fd and pushed synchronized integration state (140 tests passed).
+2026-09-04 — lead/core-engine — Synchronized with develop at 7a930fd; audited origin/member3/security-rules (clean, 14 commits behind develop, no unmerged rule code); verified core output and contract readiness for Milestone 5 deterministic security rules.
 ```
 
 ---

@@ -82,6 +82,72 @@ class TransportSecurity(BaseModel):
     evidence: TransportSecurityEvidence
 
 
+class TLSNamedGroup(BaseModel):
+    """Numeric and normalized name for an observed TLS named group."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str | None
+
+
+class TLSCipherSuite(BaseModel):
+    """Numeric and normalized name for a ServerHello cipher selection."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str | None
+
+
+class TLSKeyExchange(BaseModel):
+    """Factual key-exchange family and selected group where derivable."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    method: Literal["ECDHE", "DHE", "RSA", "PSK", "UNKNOWN"]
+    group: TLSNamedGroup | None
+
+
+class TLSHandshakeEvidence(BaseModel):
+    """Packet references supporting TLS handshake metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    client_hello_frame: int | None = Field(default=None, ge=1)
+    server_hello_frame: int | None = Field(default=None, ge=1)
+    selected_version_frame: int | None = Field(default=None, ge=1)
+    selected_cipher_frame: int | None = Field(default=None, ge=1)
+    key_exchange_frame: int | None = Field(default=None, ge=1)
+    handshake_complete_frame: int | None = Field(default=None, ge=1)
+    alert_frame: int | None = Field(default=None, ge=1)
+
+
+class TLSHandshakeMetadata(BaseModel):
+    """Observable TLS handshake facts without certificate or risk analysis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    detected: bool
+    handshake_status: Literal[
+        "NOT_APPLICABLE",
+        "DETECTED",
+        "INCOMPLETE",
+        "COMPLETE",
+        "FAILED",
+        "UNKNOWN",
+    ]
+    offered_versions: list[str]
+    offered_groups: list[TLSNamedGroup] = Field(
+        ...,
+        description="Named groups advertised by ClientHello",
+    )
+    version: str | None
+    cipher_suite: TLSCipherSuite | None
+    key_exchange: TLSKeyExchange | None
+    evidence: TLSHandshakeEvidence
+
+
 class SessionSchema(BaseModel):
     """Schema definition for an extracted email protocol session."""
 
@@ -126,6 +192,10 @@ class SessionSchema(BaseModel):
     transport_security: TransportSecurity | None = Field(
         default=None,
         description="Observed STARTTLS/STLS or implicit-TLS transition state",
+    )
+    tls: TLSHandshakeMetadata | None = Field(
+        default=None,
+        description="Observable TLS handshake metadata",
     )
 
 

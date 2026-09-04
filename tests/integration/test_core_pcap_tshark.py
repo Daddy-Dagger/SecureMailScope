@@ -23,6 +23,52 @@ def _write_packets(path: Path, packets: list) -> None:
     wrpcap(str(path), packets)
 
 
+def _tls_handshake_record(message_type: int, body: bytes) -> bytes:
+    message = bytes((message_type,)) + len(body).to_bytes(3, "big") + body
+    return b"\x16\x03\x03" + len(message).to_bytes(2, "big") + message
+
+
+def _tls_extension(extension_type: int, data: bytes) -> bytes:
+    return extension_type.to_bytes(2, "big") + len(data).to_bytes(2, "big") + data
+
+
+def _tls13_client_hello() -> bytes:
+    supported_versions = _tls_extension(0x002B, b"\x02\x03\x04")
+    key_share_entry = b"\x00\x1d\x00\x20" + (b"\x11" * 32)
+    key_share = _tls_extension(
+        0x0033,
+        len(key_share_entry).to_bytes(2, "big") + key_share_entry,
+    )
+    supported_groups = _tls_extension(0x000A, b"\x00\x02\x00\x1d")
+    extensions = supported_versions + key_share + supported_groups
+    body = (
+        b"\x03\x03"
+        + (b"\x01" * 32)
+        + b"\x00"
+        + b"\x00\x04\x13\x02\xc0\x2f"
+        + b"\x01\x00"
+        + len(extensions).to_bytes(2, "big")
+        + extensions
+    )
+    return _tls_handshake_record(1, body)
+
+
+def _tls13_server_hello() -> bytes:
+    supported_version = _tls_extension(0x002B, b"\x03\x04")
+    key_share = _tls_extension(0x0033, b"\x00\x1d\x00\x20" + (b"\x22" * 32))
+    extensions = supported_version + key_share
+    body = (
+        b"\x03\x03"
+        + (b"\x02" * 32)
+        + b"\x00"
+        + b"\x13\x02"
+        + b"\x00"
+        + len(extensions).to_bytes(2, "big")
+        + extensions
+    )
+    return _tls_handshake_record(2, body)
+
+
 def test_real_pcap_groups_bidirectional_smtp_session(tmp_path: Path) -> None:
     capture = tmp_path / "smtp.pcap"
     _write_packets(
@@ -94,6 +140,42 @@ def test_real_pcap_reconstructs_smtp_starttls_upgrade(tmp_path: Path) -> None:
         "tls_start_frame": 6,
     }
     assert session["application_events"][-1]["kind"] == "TLS_START"
+
+
+def test_generated_real_pcap_extracts_tls13_server_selection(tmp_path: Path) -> None:
+    capture = tmp_path / "implicit-tls13.pcap"
+    client_hello = _tls13_client_hello()
+    server_hello = _tls13_server_hello()
+    _write_packets(
+        capture,
+        [
+            Ether()
+            / IP(src="192.0.2.10", dst="192.0.2.20")
+            / TCP(sport=51544, dport=465, flags="PA", seq=1)
+            / Raw(client_hello),
+            Ether()
+            / IP(src="192.0.2.20", dst="192.0.2.10")
+            / TCP(sport=465, dport=51544, flags="PA", seq=1)
+            / Raw(server_hello),
+        ],
+    )
+
+    session = analyze_pcap_file(capture)["sessions"][0]
+
+    assert session["transport_security"]["mode"] == "IMPLICIT_TLS"
+    assert session["tls"]["handshake_status"] == "INCOMPLETE"
+    assert session["tls"]["offered_versions"] == ["TLS 1.3"]
+    assert session["tls"]["version"] == "TLS 1.3"
+    assert session["tls"]["cipher_suite"] == {
+        "id": "0x1302",
+        "name": "TLS_AES_256_GCM_SHA384",
+    }
+    assert session["tls"]["key_exchange"] == {
+        "method": "ECDHE",
+        "group": {"id": "0x001d", "name": "x25519"},
+    }
+    assert session["tls"]["evidence"]["client_hello_frame"] == 1
+    assert session["tls"]["evidence"]["server_hello_frame"] == 2
 
 
 def test_real_no_email_pcap_returns_no_sessions(tmp_path: Path) -> None:

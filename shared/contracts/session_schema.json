@@ -118,6 +118,80 @@
       },
       "required": ["mode", "upgrade_status", "advertised", "requested", "accepted", "tls_detected", "upgrade_command", "evidence"],
       "additionalProperties": false
+    },
+    "tls": {
+      "type": "object",
+      "description": "Observable TLS handshake metadata. Certificate and security classification fields are intentionally excluded.",
+      "properties": {
+        "detected": {"type": "boolean"},
+        "handshake_status": {
+          "type": "string",
+          "enum": ["NOT_APPLICABLE", "DETECTED", "INCOMPLETE", "COMPLETE", "FAILED", "UNKNOWN"]
+        },
+        "offered_versions": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "offered_groups": {
+          "type": "array",
+          "description": "Unique named groups advertised through ClientHello supported-groups or key-share extensions.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string", "pattern": "^0x[0-9a-f]{4}$"},
+              "name": {"type": ["string", "null"]}
+            },
+            "required": ["id", "name"],
+            "additionalProperties": false
+          }
+        },
+        "version": {"type": ["string", "null"]},
+        "cipher_suite": {
+          "type": ["object", "null"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^0x[0-9a-f]{4}$"},
+            "name": {"type": ["string", "null"]}
+          },
+          "required": ["id", "name"],
+          "additionalProperties": false
+        },
+        "key_exchange": {
+          "type": ["object", "null"],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": ["ECDHE", "DHE", "RSA", "PSK", "UNKNOWN"]
+            },
+            "group": {
+              "type": ["object", "null"],
+              "properties": {
+                "id": {"type": "string", "pattern": "^0x[0-9a-f]{4}$"},
+                "name": {"type": ["string", "null"]}
+              },
+              "required": ["id", "name"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["method", "group"],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "client_hello_frame": {"type": "integer", "minimum": 1},
+            "server_hello_frame": {"type": "integer", "minimum": 1},
+            "selected_version_frame": {"type": "integer", "minimum": 1},
+            "selected_cipher_frame": {"type": "integer", "minimum": 1},
+            "key_exchange_frame": {"type": "integer", "minimum": 1},
+            "handshake_complete_frame": {"type": "integer", "minimum": 1},
+            "alert_frame": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["detected", "handshake_status", "offered_versions", "offered_groups", "version", "cipher_suite", "key_exchange", "evidence"],
+      "additionalProperties": false
     }
   },
   "required": [
@@ -152,6 +226,16 @@
         "accepted": false,
         "tls_detected": false,
         "upgrade_command": "STARTTLS",
+        "evidence": {}
+      },
+      "tls": {
+        "detected": false,
+        "handshake_status": "NOT_APPLICABLE",
+        "offered_versions": [],
+        "offered_groups": [],
+        "version": null,
+        "cipher_suite": null,
+        "key_exchange": null,
         "evidence": {}
       }
     }

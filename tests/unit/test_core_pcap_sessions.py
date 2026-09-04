@@ -89,6 +89,16 @@ def test_smtp_bidirectional_packets_form_one_session() -> None:
                 "upgrade_command": "STARTTLS",
                 "evidence": {},
             },
+            "tls": {
+                "detected": False,
+                "handshake_status": "NOT_APPLICABLE",
+                "offered_versions": [],
+                "offered_groups": [],
+                "version": None,
+                "cipher_suite": None,
+                "key_exchange": None,
+                "evidence": {},
+            },
         }
     ]
 

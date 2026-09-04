@@ -63,7 +63,15 @@ They are optional in the JSON Schema so previously valid Milestone 1 session
 documents remain valid. Core-engine output includes them for newly analyzed
 sessions. POP3 reports `upgrade_command: "STLS"` while using the same common
 `upgrade_status` vocabulary. No TLS version, cipher, or certificate fields are
-part of this milestone.
+part of Milestone 2.
+
+Milestone 3 adds the optional `tls` object. It records detection and handshake
+status, offered/selected versions, selected cipher ID/name, factual key-exchange
+family/group metadata, and packet evidence. The TLS 1.3 selected version comes
+from ServerHello `supported_versions` when observable rather than the legacy
+record/hello compatibility value. Unknown cipher or group IDs remain available
+with a null name; no weak/strong classification is performed. Certificate fields
+remain deferred.
 
 ### Finding Schema Example
 

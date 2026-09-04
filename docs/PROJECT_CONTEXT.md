@@ -201,7 +201,7 @@ Remote repository:
 https://github.com/Daddy-Dagger/SecureMailScope.git
 ```
 
-The development foundation and Member 4 backend/reporting foundation are integrated into `develop` at merge commit `fcb7d37`. The `lead/core-engine` branch is synchronized with that commit and now contains the verified Milestone 1 and Milestone 2 implementations pending integration review.
+Milestones 1 and 2 are integrated into `develop` at merge commit `625cb88`. The local and remote `lead/core-engine` and `develop` branches were synchronized at that commit before Milestone 3 work began. The lead branch now contains the verified, uncommitted Milestone 3 TLS handshake metadata implementation pending review.
 
 ### Verified working setup
 
@@ -211,7 +211,7 @@ The development foundation and Member 4 backend/reporting foundation are integra
 - Frontend can reach `/health`
 - CORS works
 - TShark 4.6.8 detected
-- pytest passes (104/104 on 2026-09-04: 67 backend/report tests, 23 Milestone 1 unit tests, 10 Milestone 2 unit tests, and 4 generated real-PCAP integration tests)
+- pytest passes (117/117 on 2026-09-04: 67 backend/report tests, 45 core unit tests, and 5 generated real-PCAP integration tests)
 - Python 3.11 environment exists
 - ReportLab 5.0.1 is installed and declared for PDF reporting
 - real-PCAP TShark integration tests pass with generated, temporary fixtures
@@ -351,7 +351,8 @@ SecureMailScope/
     │   └── test_core_pcap_tshark.py
     ├── unit/
     │   ├── test_core_pcap_sessions.py
-    │   └── test_starttls_reconstruction.py
+    │   ├── test_starttls_reconstruction.py
+    │   └── test_tls_handshake.py
     └── e2e/
 ```
 
@@ -637,7 +638,9 @@ test(api): add health endpoint regression test
 - Member 4 backend/reporting work from commit `644ea76` integrated into `develop` by merge commit `fcb7d37` and re-verified
 - **Milestone 1 VERIFIED on `lead/core-engine`:** validated PCAP/PCAPNG/CAP reading through TShark, total packet counting, bidirectional TCP-flow grouping, SMTP/IMAP/POP3 detection, client/server endpoint identification, per-session packet/timestamp metadata, and shared-contract-compatible structured output
 - **Milestone 2 VERIFIED on `lead/core-engine`:** reconstructs ordered, normalized STARTTLS-relevant plaintext events; detects SMTP STARTTLS, IMAP STARTTLS, POP3 STLS, explicit rejection versus incomplete evidence, implicit TLS on ports 465/993/995, and the first TLS record after an upgrade; emits packet/timestamp evidence without retaining arbitrary email bodies or credentials
-- the shared session contract now has additive optional `application_events` and `transport_security` fields; the backend Pydantic session model has the minimum corresponding compatibility update while continuing to accept Milestone 1 session objects
+- **Milestones 1 and 2 INTEGRATED into `develop`:** commit `94fd85d` was merged by `625cb88`, verified with 104 tests plus frontend/TShark/compile/schema/diff checks, and pushed to both `origin/develop` and the synchronized `origin/lead/core-engine`
+- **Milestone 3 VERIFIED on uncommitted `lead/core-engine` work:** extracts observable ClientHello/ServerHello versions, TLS 1.3 selected versions, selected cipher ID/name, key-share or legacy key-exchange family, conservative handshake state, and frame evidence without parsing certificates or assigning security quality
+- the shared session contract now has additive optional `application_events`, `transport_security`, and `tls` fields; the backend Pydantic session model has the minimum corresponding compatibility update while continuing to accept Milestone 1 and 2 session objects
 - `PcapAnalysisEngine` implements Member 4's `CoreAnalysisEngine` protocol and is verified through `AnalysisService` dependency injection
 - TShark verification
 - pytest setup
@@ -651,7 +654,6 @@ test(api): add health endpoint regression test
 
 ### NOT implemented yet
 
-- TLS handshake analysis
 - certificate extraction
 - security rules
 - risk scoring
@@ -665,11 +667,11 @@ test(api): add health endpoint regression test
 
 ## 13. Current Milestone
 
-### Milestone 2 — IMPLEMENTED AND VERIFIED on `lead/core-engine`
+### Milestone 3 — IMPLEMENTED AND VERIFIED on `lead/core-engine` (uncommitted)
 
-> **PCAP → reconstruct STARTTLS-relevant SMTP / IMAP / POP3 events → classify transport upgrade with packet evidence**
+> **Identified TLS session → extract observable handshake version, cipher, key-exchange metadata, state, and frame evidence**
 
-Milestones 1 and 2 belong mainly to the lead/core-engine branch. Their required functionality is implemented and passed the full repository suite plus generated real-PCAP integration tests on 2026-09-04. They have not yet been merged from `lead/core-engine` back into `develop`.
+Milestones 1 and 2 are integrated into `develop` by merge commit `625cb88`. The lead branch was synchronized to that exact commit before Milestone 3 began. Milestone 3 is implemented and verified in the current uncommitted lead-branch working tree; it has not been committed, pushed, or integrated into `develop`.
 
 ### Required output
 
@@ -711,6 +713,31 @@ Milestones 1 and 2 belong mainly to the lead/core-engine branch. Their required 
           "accept_frame": 20,
           "tls_start_frame": 21
         }
+      },
+      "tls": {
+        "detected": true,
+        "handshake_status": "COMPLETE",
+        "offered_versions": ["TLS 1.3", "TLS 1.2"],
+        "offered_groups": [
+          {"id": "0x001d", "name": "x25519"}
+        ],
+        "version": "TLS 1.3",
+        "cipher_suite": {
+          "id": "0x1302",
+          "name": "TLS_AES_256_GCM_SHA384"
+        },
+        "key_exchange": {
+          "method": "ECDHE",
+          "group": {"id": "0x001d", "name": "x25519"}
+        },
+        "evidence": {
+          "client_hello_frame": 21,
+          "server_hello_frame": 22,
+          "selected_version_frame": 22,
+          "selected_cipher_frame": 22,
+          "key_exchange_frame": 22,
+          "handshake_complete_frame": 26
+        }
       }
     }
   ],
@@ -724,52 +751,53 @@ Milestones 1 and 2 belong mainly to the lead/core-engine branch. Their required 
 
 ### Implemented scope
 
-- ordered, normalized greeting/command/capability/response/TLS-start events with direction, frame, timestamp, and IMAP tag where applicable
-- SMTP EHLO/HELO capability tracking and STARTTLS advertisement, request, acceptance/rejection, and TLS transition detection
-- IMAP CAPABILITY/STARTTLS tracking with tagged response correlation
-- POP3 CAPA/STLS tracking mapped into the common transport-security status with `upgrade_command: "STLS"`
-- implicit TLS classification on SMTP 465, IMAP 993, and POP3 995 as `NOT_APPLICABLE`, never as a missing-STARTTLS failure
-- conservative `UNKNOWN`/`INCOMPLETE` results where capture evidence is missing; `FAILED` only for an observed negative response
-- additive shared-contract output and minimum backend model compatibility
-- metadata-only retention: arbitrary email bodies, authentication values, and raw protocol lines are not emitted
+- ClientHello and ServerHello recognition from repeated TShark handshake fields
+- client-offered TLS versions and key-share groups where observable
+- selected TLS version with ServerHello `supported_version` taking priority over TLS 1.3 legacy compatibility fields
+- ServerHello cipher-suite numeric ID plus normalized name for common suites; unknown/new IDs are retained with a null name
+- conservative ECDHE/DHE derivation from a selected named group and ECDHE/DHE/RSA/PSK family derivation from known legacy cipher-suite names
+- `NOT_APPLICABLE`, `DETECTED`, `INCOMPLETE`, `COMPLETE`, `FAILED`, and `UNKNOWN` handshake states
+- `COMPLETE` only when observable Finished messages exist in both directions; `FAILED` only for an explicit fatal TLS alert before completion
+- frame evidence for ClientHello, ServerHello, selected version/cipher/key exchange, completion, and fatal alerts
+- no certificate parsing, validation, or security-quality classification
 
 ### Verification
 
-- 23 Milestone 1 mocked-packet unit tests remain green.
-- 10 Milestone 2 unit tests cover SMTP success/advertised-only/rejection/incomplete/not-advertised states, SMTP/IMAP/POP3 implicit TLS, tagged IMAP STARTTLS success, POP3 STLS success, event ordering/reverse direction, fragmented capability lines, missing evidence, and plaintext sessions.
-- 4 generated real-PCAP integration tests pass; the new test verifies an end-to-end SMTP STARTTLS upgrade through TShark without committing a capture file.
-- Full result: 104 passed with no warnings (67 backend/report, 33 core unit, 4 integration).
+- 23 Milestone 1 and 10 Milestone 2 unit tests remain green.
+- 12 Milestone 3 unit tests cover TLS 1.2, TLS 1.3, TLS 1.3 legacy-version avoidance, known/unknown ciphers, ECDHE/RSA/UNKNOWN key exchange, no TLS, raw TLS detection, missing ServerHello, incomplete handshake, fatal-alert failure, implicit TLS, STARTTLS upgrade, and malformed/unknown fallback.
+- 5 generated real-PCAP integration tests pass; the new test verifies TLS 1.3 ClientHello/ServerHello selected version, cipher, x25519 group, and frame evidence through TShark.
+- Full result: 117 passed with no warnings (67 backend/report, 45 core unit, 5 integration).
 - Frontend Vite production build passes (16 modules transformed).
-- TShark 4.6.8 check, Python compile check, JSON syntax checks, and `git diff --check` pass.
+- TShark 4.6.8 check, Python compile check, JSON syntax checks, draft-07 AJV structural compilation and sample-data validation, and `git diff --check` pass. AJV's optional date-time formats plugin was unavailable to the one-off validator, so existing date-time format annotations were ignored by that external check.
 
-### Files changed for Milestone 2
+### Files changed for Milestone 3
 
-- Core: `core/pcap/session_builder.py`, `core/pcap/tshark_adapter.py`, `core/protocols/session_reconstruction.py`, and the three affected core README files.
-- Contract: `shared/contracts/session_schema.json` and `shared/contracts/README.md`.
+- Core: `core/pcap/session_builder.py`, `core/pcap/tshark_adapter.py`, `core/tls/handshake.py`, `core/tls/__init__.py`, and affected core README files.
+- Contract: `shared/contracts/session_schema.json` and `shared/contracts/README.md` add optional TLS handshake output.
 - Minimal backend compatibility: `backend/app/models/analysis.py` only; the adapter boundary and backend orchestration were not redesigned.
-- Tests: `tests/unit/test_starttls_reconstruction.py`, `tests/unit/test_core_pcap_sessions.py`, and `tests/integration/test_core_pcap_tshark.py`.
+- Tests: new `tests/unit/test_tls_handshake.py`, plus compatibility/integration updates in `tests/unit/test_core_pcap_sessions.py` and `tests/integration/test_core_pcap_tshark.py`.
 - Project state: `docs/PROJECT_CONTEXT.md`.
 
 ### Shared contract additions
 
-- `application_events[]`: normalized `direction`, `kind`, `name`, `frame_number`, `timestamp`, and optional IMAP `tag`.
-- `transport_security`: `mode`, common `upgrade_status`, `advertised`, `requested`, `accepted`, `tls_detected`, protocol-specific `upgrade_command`, and optional evidence frames.
-- Both fields are optional in the JSON Schema and backend model so existing Milestone 1 documents remain valid; new core output includes them.
+- optional `tls`: `detected`, `handshake_status`, `offered_versions`, `offered_groups`, selected `version`, `cipher_suite`, `key_exchange`, and evidence frames
+- `tls` is optional in the JSON Schema and backend model so existing Milestone 1 and 2 documents remain valid; new core output includes it
+- no certificate, certificate-chain, weakness, scoring, or risk fields were added
 
-### Known Milestone 2 limitations
+### Known Milestone 3 limitations
 
 - TShark must be installed and available on `PATH`; PyShark/Scapy are not used as a silent production fallback.
 - Protocol labels are accepted only when TShark supplies an explicit SMTP/IMAP/POP token. Otherwise, detection is limited to the approved conventional ports (SMTP 25/465/587, IMAP 143/993, POP3 110/995); a port fallback identifies likely service traffic, not decrypted application payload.
 - Client/server roles prefer the matching conventional server port, then the initial TCP SYN. For nonstandard-port captures that begin mid-session, the first observed direction is the remaining basic heuristic.
-- Plaintext line fragments are joined per direction in capture order, but the engine does not yet perform sequence-number-aware TCP retransmission, overlap, or out-of-order segment normalization.
-- TLS detection only confirms a TLS record appeared; it does not extract TLS versions, ciphers, certificates, key exchange, or signature algorithms.
-- Implicit-TLS mode is inferred from conventional ports 465/993/995; `tls_detected` separately reports whether a TLS record was actually observed.
-- The controlled real-PCAP tests are small generated captures. No Member 2 team-owned real fixtures were present, so broader SMTP/IMAP/POP3 fixtures are still needed for truncated, retransmitted, IPv6, and large-capture behavior.
+- Encrypted Finished messages are often unavailable without TLS secrets, especially in TLS 1.3; such captures remain conservatively `INCOMPLETE` even when ClientHello and ServerHello are visible.
+- The normalized cipher and named-group maps cover common standardized values. Unknown/new numeric IDs are preserved with null names instead of guessed labels.
+- Key-exchange family is reported only from a selected group or a known legacy suite name; otherwise it is `UNKNOWN`.
+- The controlled real-PCAP tests are small generated captures. No Member 2 team-owned real TLS fixtures were present, so broader TLS 1.2/1.3, resumed, truncated, retransmitted, IPv6, and large-capture behavior remains to be tested.
+- Plaintext reconstruction still lacks sequence-number-aware TCP retransmission, overlap, or out-of-order segment normalization.
 - The backend default engine factory remains deferred. `PcapAnalysisEngine` remains contract-compatible through explicit `AnalysisService` injection; the only Member 4 area change was adding optional Pydantic fields for the evolved shared contract.
 
 ### Do NOT implement yet
 
-- TLS handshake analysis
 - certificate inspection
 - security scoring
 - ML
@@ -782,10 +810,10 @@ Milestones 1 and 2 belong mainly to the lead/core-engine branch. Their required 
 
 ## 14. Planned Milestone Order
 
-1. **VERIFIED on lead branch:** PCAP → SMTP/IMAP/POP3 sessions → JSON
-2. **VERIFIED on lead branch:** Session reconstruction + STARTTLS/STLS and implicit-TLS detection
-3. **NEXT only after integration and explicit confirmation:** TLS handshake metadata extraction
-4. Certificate and crypto feature extraction
+1. **INTEGRATED into develop:** PCAP → SMTP/IMAP/POP3 sessions → JSON
+2. **INTEGRATED into develop:** Session reconstruction + STARTTLS/STLS and implicit-TLS detection
+3. **VERIFIED on uncommitted lead branch:** TLS handshake metadata extraction
+4. **NEXT only after integration and explicit confirmation:** X.509 certificate and cryptographic feature extraction
 5. Deterministic security rules
 6. Generate controlled PCAP dataset
 7. Risk scoring
@@ -900,9 +928,9 @@ If this file is provided at the beginning of a new chat, the agent should:
 
 ## 20. Immediate Next Action
 
-> Integrate Milestone 2 into `develop`, then begin Milestone 3: TLS handshake metadata extraction.
+> Integrate Milestone 3 into `develop`, then begin Milestone 4: X.509 certificate and cryptographic feature extraction.
 
-Do not begin Milestone 3 or any certificate, rules, ML, scoring, or dashboard work without explicit confirmation.
+Do not begin Milestone 4 or any certificate validation, rules, ML, scoring, or dashboard work without explicit confirmation.
 
 
 ---
@@ -1023,6 +1051,8 @@ Example:
 2026-09-04 — develop — Integrated and re-verified Member 4 backend/reporting foundation from commit 644ea76.
 2026-09-04 — lead/core-engine — Synchronized with develop at fcb7d37 and implemented verified Milestone 1 TShark PCAP-to-email-session structured output (93 tests passed).
 2026-09-04 — lead/core-engine — Implemented and verified Milestone 2 metadata-only session reconstruction, SMTP/IMAP STARTTLS, POP3 STLS, implicit TLS classification, TLS-transition evidence, and additive shared/backend contract compatibility (104 tests passed).
+2026-09-04 — develop — Integrated verified Milestones 1 and 2 through merge commit 625cb88 and pushed the synchronized integration state.
+2026-09-04 — lead/core-engine — Synchronized with develop at 625cb88, then implemented and verified uncommitted Milestone 3 TLS handshake version, cipher, key-exchange, state, and evidence extraction (117 tests passed).
 ```
 
 ---

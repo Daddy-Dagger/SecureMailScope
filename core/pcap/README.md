@@ -14,8 +14,8 @@ The analyzer counts every captured frame, but only TCP flows with complete
 endpoint metadata can become sessions. It uses explicit TShark SMTP/IMAP/POP
 labels when present, then the approved well-known-port fallback. TCP payload is
 used only to recognize relevant plaintext state lines; arbitrary message content
-is not included in output. TLS detection stops at confirming that a TLS record
-appeared after an accepted upgrade.
+is not included in output. TLS packet metadata feeds the Milestone 3 handshake
+extractor after the Milestone 2 upgrade decision.
 
-The analyzer does not yet extract handshake versions, cipher suites,
-certificates, rules, or risk.
+The analyzer now extracts observable handshake versions, cipher suites, and
+key-exchange groups, but does not extract certificates, rules, or risk.

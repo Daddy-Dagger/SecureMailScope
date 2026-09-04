@@ -32,6 +32,8 @@ def packet(
     labels: tuple[str, ...] = (),
     syn: bool = False,
     ack: bool = False,
+    payload: str | bytes = b"",
+    tls: bool = False,
 ) -> PacketMetadata:
     return PacketMetadata(
         frame_number=frame,
@@ -44,6 +46,8 @@ def packet(
         tcp_syn=syn,
         tcp_ack=ack,
         protocol_labels=labels,
+        tcp_payload=payload.encode() if isinstance(payload, str) else payload,
+        tls_record=tls,
     )
 
 
@@ -74,6 +78,17 @@ def test_smtp_bidirectional_packets_form_one_session() -> None:
             "packet_count": 3,
             "start_time": "2026-09-04T03:50:10Z",
             "end_time": "2026-09-04T03:50:15Z",
+            "application_events": [],
+            "transport_security": {
+                "mode": "UNKNOWN",
+                "upgrade_status": "UNKNOWN",
+                "advertised": False,
+                "requested": False,
+                "accepted": False,
+                "tls_detected": False,
+                "upgrade_command": "STARTTLS",
+                "evidence": {},
+            },
         }
     ]
 
@@ -206,6 +221,10 @@ def test_contract_compatible_engine_output(monkeypatch: pytest.MonkeyPatch) -> N
     assert engine.is_available is True
     validated = AnalysisResultResponse.model_validate(result)
     assert validated.sessions[0].protocol == "POP3"
+    assert validated.sessions[0].transport_security is not None
+    assert validated.sessions[0].transport_security.mode == "IMPLICIT_TLS"
+    assert validated.sessions[0].transport_security.upgrade_status == "NOT_APPLICABLE"
+    assert validated.sessions[0].transport_security.tls_detected is False
     assert validated.findings == []
     assert validated.overall_score is None
     assert validated.risk_level is None

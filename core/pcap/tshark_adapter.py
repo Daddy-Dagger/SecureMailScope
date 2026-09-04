@@ -1,4 +1,4 @@
-"""Extract minimal packet metadata from captures with TShark."""
+"""Extract packet metadata needed for email-session reconstruction."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class InvalidCaptureError(TSharkError):
 
 @dataclass(frozen=True, slots=True)
 class PacketMetadata:
-    """The packet fields needed for Milestone 1 session extraction."""
+    """The packet fields needed for session and STARTTLS reconstruction."""
 
     frame_number: int
     timestamp: float
@@ -37,6 +37,8 @@ class PacketMetadata:
     tcp_syn: bool = False
     tcp_ack: bool = False
     protocol_labels: tuple[str, ...] = ()
+    tcp_payload: bytes = b""
+    tls_record: bool = False
 
     @property
     def is_tcp(self) -> bool:
@@ -63,6 +65,8 @@ _FIELDS = (
     "tcp.flags.ack",
     "frame.protocols",
     "_ws.col.Protocol",
+    "tcp.payload",
+    "tls.record.content_type",
 )
 
 
@@ -136,6 +140,8 @@ def extract_packet_metadata(
 
         src_ip = padded[2] or padded[3] or None
         dst_ip = padded[4] or padded[5] or None
+        protocol_labels = normalize_protocol_labels((padded[11], padded[12]))
+        tcp_payload = _parse_hex_bytes(padded[13])
         packets.append(
             PacketMetadata(
                 frame_number=frame_number,
@@ -147,7 +153,14 @@ def extract_packet_metadata(
                 tcp_stream=padded[8] or None,
                 tcp_syn=_parse_bool(padded[9]),
                 tcp_ack=_parse_bool(padded[10]),
-                protocol_labels=normalize_protocol_labels((padded[11], padded[12])),
+                protocol_labels=protocol_labels,
+                tcp_payload=tcp_payload,
+                tls_record=(
+                    bool(padded[14])
+                    or "tls" in protocol_labels
+                    or "ssl" in protocol_labels
+                    or _looks_like_tls_record(tcp_payload)
+                ),
             )
         )
 
@@ -165,3 +178,25 @@ def _optional_int(value: str) -> int | None:
 
 def _parse_bool(value: str) -> bool:
     return value.casefold() in {"1", "true"}
+
+
+def _parse_hex_bytes(value: str) -> bytes:
+    """Decode TShark's colon-delimited ``FT_BYTES`` representation."""
+    if not value:
+        return b""
+    try:
+        return bytes.fromhex(value.replace(":", ""))
+    except ValueError as exc:
+        raise InvalidCaptureError(
+            "TShark returned an invalid TCP payload byte field."
+        ) from exc
+
+
+def _looks_like_tls_record(payload: bytes) -> bool:
+    """Recognize a complete TLS record header without parsing the handshake."""
+    if len(payload) < 5 or payload[0] not in {20, 21, 22, 23}:
+        return False
+    if payload[1] != 3 or payload[2] > 4:
+        return False
+    record_length = int.from_bytes(payload[3:5], "big")
+    return 0 < record_length <= 18_432 and len(payload) >= record_length + 5

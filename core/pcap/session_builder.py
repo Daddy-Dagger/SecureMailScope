@@ -19,6 +19,7 @@ from core.protocols import (
     protocols_from_labels,
     protocols_from_ports,
 )
+from core.protocols.session_reconstruction import reconstruct_security_state
 
 AnalysisResult = dict[str, Any]
 
@@ -64,6 +65,13 @@ def build_analysis_result(
         counters[protocol] += 1
         start_time = min(packet.timestamp for packet in flow_packets)
         end_time = max(packet.timestamp for packet in flow_packets)
+        application_events, transport_security = reconstruct_security_state(
+            protocol,
+            flow_packets,
+            client_ip=client_ip,
+            client_port=client_port,
+            server_port=server_port,
+        )
         sessions.append(
             {
                 "session_id": f"{protocol.casefold()}-{counters[protocol]:03d}",
@@ -75,6 +83,11 @@ def build_analysis_result(
                 "packet_count": len(flow_packets),
                 "start_time": _iso_utc(start_time),
                 "end_time": _iso_utc(end_time),
+                "application_events": [
+                    {**event, "timestamp": _iso_utc(event["timestamp"])}
+                    for event in application_events
+                ],
+                "transport_security": transport_security,
             }
         )
 
@@ -175,7 +188,9 @@ def _identify_client_server(
     }
     if len(server_candidates) == 1:
         server_ip, server_port = next(iter(server_candidates))
-        client_ip, client_port = next(endpoint for endpoint in endpoints if endpoint not in server_candidates)
+        client_ip, client_port = next(
+            endpoint for endpoint in endpoints if endpoint not in server_candidates
+        )
         return client_ip, client_port, server_ip, server_port
 
     initial_syn = next(

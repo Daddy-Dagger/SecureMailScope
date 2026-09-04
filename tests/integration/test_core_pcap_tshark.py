@@ -61,6 +61,41 @@ def test_real_pcap_groups_bidirectional_smtp_session(tmp_path: Path) -> None:
     assert metadata[1].tcp_ack is True
 
 
+def test_real_pcap_reconstructs_smtp_starttls_upgrade(tmp_path: Path) -> None:
+    capture = tmp_path / "smtp-starttls.pcap"
+    client = {"src": "192.168.1.10", "dst": "192.168.1.20"}
+    server = {"src": "192.168.1.20", "dst": "192.168.1.10"}
+    tls_record = b"\x16\x03\x03\x00\x04\x01\x00\x00\x00"
+    _write_packets(
+        capture,
+        [
+            Ether() / IP(**server) / TCP(sport=25, dport=51544, flags="PA", seq=1)
+            / Raw(b"220 mail.example ESMTP\r\n"),
+            Ether() / IP(**client) / TCP(sport=51544, dport=25, flags="PA", seq=1)
+            / Raw(b"EHLO client.example\r\n"),
+            Ether() / IP(**server) / TCP(sport=25, dport=51544, flags="PA", seq=25)
+            / Raw(b"250-mail.example\r\n250-STARTTLS\r\n250 SIZE 1000\r\n"),
+            Ether() / IP(**client) / TCP(sport=51544, dport=25, flags="PA", seq=22)
+            / Raw(b"STARTTLS\r\n"),
+            Ether() / IP(**server) / TCP(sport=25, dport=51544, flags="PA", seq=76)
+            / Raw(b"220 Ready to start TLS\r\n"),
+            Ether() / IP(**client) / TCP(sport=51544, dport=25, flags="PA", seq=32)
+            / Raw(tls_record),
+        ],
+    )
+
+    session = analyze_pcap_file(capture)["sessions"][0]
+
+    assert session["transport_security"]["upgrade_status"] == "UPGRADED"
+    assert session["transport_security"]["evidence"] == {
+        "advertised_frame": 3,
+        "request_frame": 4,
+        "accept_frame": 5,
+        "tls_start_frame": 6,
+    }
+    assert session["application_events"][-1]["kind"] == "TLS_START"
+
+
 def test_real_no_email_pcap_returns_no_sessions(tmp_path: Path) -> None:
     capture = tmp_path / "dns.pcap"
     _write_packets(

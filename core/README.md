@@ -1,5 +1,11 @@
 # Core analysis engine
 
-The Milestone 1 core reads supplied PCAP/PCAPNG files with TShark and emits structured SMTP, IMAP, and POP3 session metadata matching the shared contract.
+The verified Milestone 2 core reads supplied PCAP/PCAPNG files with TShark and
+emits structured SMTP, IMAP, and POP3 sessions matching the shared contract. It
+reconstructs normalized plaintext events relevant to STARTTLS/STLS, records
+packet evidence for each transition decision, detects the first TLS record after
+an accepted upgrade, and distinguishes implicit TLS ports.
 
-Later milestones still own command/session reconstruction, STARTTLS and TLS metadata, certificates, deterministic rules, scoring, and local ML support. None of those future capabilities are claimed by the current parser.
+The reconstruction deliberately excludes arbitrary email bodies and credential
+content. Later milestones still own TLS handshake versions and ciphers,
+certificates, deterministic rules, scoring, and local ML support.

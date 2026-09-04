@@ -1,6 +1,6 @@
 # Shared Data Contracts
 
-This directory defines the minimal JSON schema contracts for SecureMailScope.
+This directory defines the JSON schema contracts for SecureMailScope.
 
 ## Purpose and Governance
 
@@ -30,9 +30,40 @@ This directory defines the minimal JSON schema contracts for SecureMailScope.
   "server_port": 25,
   "packet_count": 63,
   "start_time": "2026-09-02T10:10:10Z",
-  "end_time": "2026-09-02T10:10:15Z"
+  "end_time": "2026-09-02T10:10:15Z",
+  "application_events": [
+    {
+      "direction": "CLIENT_TO_SERVER",
+      "kind": "COMMAND",
+      "name": "STARTTLS",
+      "frame_number": 19,
+      "timestamp": "2026-09-02T10:10:12Z"
+    }
+  ],
+  "transport_security": {
+    "mode": "STARTTLS",
+    "upgrade_status": "UPGRADED",
+    "advertised": true,
+    "requested": true,
+    "accepted": true,
+    "tls_detected": true,
+    "upgrade_command": "STARTTLS",
+    "evidence": {
+      "advertised_frame": 17,
+      "request_frame": 19,
+      "accept_frame": 20,
+      "tls_start_frame": 21
+    }
+  }
 }
 ```
+
+`application_events` and `transport_security` are additive Milestone 2 fields.
+They are optional in the JSON Schema so previously valid Milestone 1 session
+documents remain valid. Core-engine output includes them for newly analyzed
+sessions. POP3 reports `upgrade_command: "STLS"` while using the same common
+`upgrade_status` vocabulary. No TLS version, cipher, or certificate fields are
+part of this milestone.
 
 ### Finding Schema Example
 

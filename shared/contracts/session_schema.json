@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SessionSchema",
-  "description": "Minimal schema definition for an email protocol session extracted during PCAP analysis.",
+  "description": "Schema for an email protocol session with metadata-only plaintext reconstruction and transport-upgrade state.",
   "type": "object",
   "properties": {
     "session_id": {
@@ -47,6 +47,77 @@
       "type": "string",
       "format": "date-time",
       "description": "Session end timestamp (ISO 8601)"
+    },
+    "application_events": {
+      "type": "array",
+      "description": "Ordered, normalized protocol events relevant to STARTTLS/STLS state; arbitrary message bodies and credentials are not retained.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": ["CLIENT_TO_SERVER", "SERVER_TO_CLIENT"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["GREETING", "COMMAND", "CAPABILITY", "RESPONSE", "TLS_START"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Normalized command, response code, capability, or TLS marker"
+          },
+          "frame_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tag": {
+            "type": "string",
+            "description": "IMAP command tag when applicable"
+          }
+        },
+        "required": ["direction", "kind", "name", "frame_number", "timestamp"],
+        "additionalProperties": false
+      }
+    },
+    "transport_security": {
+      "type": "object",
+      "description": "Observed plaintext-to-TLS transition state. This does not include deep TLS handshake analysis.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["PLAINTEXT", "STARTTLS", "IMPLICIT_TLS", "UNKNOWN"]
+        },
+        "upgrade_status": {
+          "type": "string",
+          "enum": ["NOT_APPLICABLE", "NOT_ADVERTISED", "ADVERTISED_NOT_REQUESTED", "REQUESTED", "ACCEPTED", "UPGRADED", "FAILED", "INCOMPLETE", "UNKNOWN"],
+          "description": "Common STARTTLS status, including POP3 STLS upgrades"
+        },
+        "advertised": {"type": "boolean"},
+        "requested": {"type": "boolean"},
+        "accepted": {"type": "boolean"},
+        "tls_detected": {"type": "boolean"},
+        "upgrade_command": {
+          "type": ["string", "null"],
+          "enum": ["STARTTLS", "STLS", null],
+          "description": "Protocol command used for an explicit upgrade; null for implicit TLS"
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "advertised_frame": {"type": "integer", "minimum": 1},
+            "request_frame": {"type": "integer", "minimum": 1},
+            "accept_frame": {"type": "integer", "minimum": 1},
+            "tls_start_frame": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["mode", "upgrade_status", "advertised", "requested", "accepted", "tls_detected", "upgrade_command", "evidence"],
+      "additionalProperties": false
     }
   },
   "required": [
@@ -71,7 +142,18 @@
       "server_port": 25,
       "packet_count": 63,
       "start_time": "2026-09-02T10:10:10Z",
-      "end_time": "2026-09-02T10:10:15Z"
+      "end_time": "2026-09-02T10:10:15Z",
+      "application_events": [],
+      "transport_security": {
+        "mode": "PLAINTEXT",
+        "upgrade_status": "UNKNOWN",
+        "advertised": false,
+        "requested": false,
+        "accepted": false,
+        "tls_detected": false,
+        "upgrade_command": "STARTTLS",
+        "evidence": {}
+      }
     }
   ]
 }

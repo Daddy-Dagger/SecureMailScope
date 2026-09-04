@@ -33,8 +33,57 @@ class ProtocolSummary(BaseModel):
     )
 
 
+class ApplicationEvent(BaseModel):
+    """Normalized protocol event retained without message or credential content."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    direction: Literal["CLIENT_TO_SERVER", "SERVER_TO_CLIENT"]
+    kind: Literal["GREETING", "COMMAND", "CAPABILITY", "RESPONSE", "TLS_START"]
+    name: str
+    frame_number: int = Field(..., ge=1)
+    timestamp: str
+    tag: str | None = None
+
+
+class TransportSecurityEvidence(BaseModel):
+    """Packet references supporting the observed upgrade decision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    advertised_frame: int | None = Field(default=None, ge=1)
+    request_frame: int | None = Field(default=None, ge=1)
+    accept_frame: int | None = Field(default=None, ge=1)
+    tls_start_frame: int | None = Field(default=None, ge=1)
+
+
+class TransportSecurity(BaseModel):
+    """Common STARTTLS/STLS or implicit-TLS transition metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["PLAINTEXT", "STARTTLS", "IMPLICIT_TLS", "UNKNOWN"]
+    upgrade_status: Literal[
+        "NOT_APPLICABLE",
+        "NOT_ADVERTISED",
+        "ADVERTISED_NOT_REQUESTED",
+        "REQUESTED",
+        "ACCEPTED",
+        "UPGRADED",
+        "FAILED",
+        "INCOMPLETE",
+        "UNKNOWN",
+    ]
+    advertised: bool
+    requested: bool
+    accepted: bool
+    tls_detected: bool
+    upgrade_command: Literal["STARTTLS", "STLS"] | None
+    evidence: TransportSecurityEvidence
+
+
 class SessionSchema(BaseModel):
-    """Minimal schema definition for an extracted email protocol session."""
+    """Schema definition for an extracted email protocol session."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -69,6 +118,14 @@ class SessionSchema(BaseModel):
     end_time: str = Field(
         ...,
         description="Session end timestamp (ISO 8601)",
+    )
+    application_events: list[ApplicationEvent] | None = Field(
+        default=None,
+        description="Ordered metadata-only STARTTLS-relevant protocol events",
+    )
+    transport_security: TransportSecurity | None = Field(
+        default=None,
+        description="Observed STARTTLS/STLS or implicit-TLS transition state",
     )
 
 

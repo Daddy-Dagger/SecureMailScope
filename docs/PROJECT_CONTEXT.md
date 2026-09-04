@@ -201,7 +201,7 @@ Remote repository:
 https://github.com/Daddy-Dagger/SecureMailScope.git
 ```
 
-The development foundation is complete and has been pushed to GitHub.
+The development foundation and Member 4 backend/reporting foundation are integrated into `develop` at merge commit `fcb7d37`. The `lead/core-engine` branch is synchronized with that commit and now contains the verified Milestone 1 implementation pending integration review.
 
 ### Verified working setup
 
@@ -211,8 +211,10 @@ The development foundation is complete and has been pushed to GitHub.
 - Frontend can reach `/health`
 - CORS works
 - TShark 4.6.8 detected
-- pytest passes
+- pytest passes (93/93 on 2026-09-04: 67 backend/report tests plus 26 Milestone 1 tests)
 - Python 3.11 environment exists
+- ReportLab 5.0.1 is installed and declared for PDF reporting
+- real-PCAP TShark integration tests pass with generated, temporary fixtures
 - `.gitignore` is configured
 - dataset folders exist
 - documentation exists
@@ -253,15 +255,18 @@ SecureMailScope/
 │   │   ├── api/
 │   │   │   ├── __init__.py
 │   │   │   ├── README.md
-│   │   │   └── analysis.py
+│   │   │   ├── analysis.py
+│   │   │   └── reports.py
 │   │   ├── models/
 │   │   │   ├── __init__.py
 │   │   │   ├── README.md
-│   │   │   └── analysis.py
+│   │   │   ├── analysis.py
+│   │   │   └── reports.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── README.md
-│   │   │   └── analysis_service.py
+│   │   │   ├── analysis_service.py
+│   │   │   └── core_adapter.py
 │   │   └── utils/
 │   │       ├── __init__.py
 │   │       └── README.md
@@ -269,7 +274,9 @@ SecureMailScope/
 │       ├── __init__.py
 │       ├── README.md
 │       ├── test_analysis.py
-│       └── test_health.py
+│       ├── test_api_reports.py
+│       ├── test_health.py
+│       └── test_reports.py
 │
 ├── core/
 │   ├── README.md
@@ -340,6 +347,9 @@ SecureMailScope/
 └── tests/
     ├── fixtures/
     ├── integration/
+    │   └── test_core_pcap_tshark.py
+    ├── unit/
+    │   └── test_core_pcap_sessions.py
     └── e2e/
 ```
 
@@ -618,6 +628,9 @@ test(api): add health endpoint regression test
 - HTML report generation (`reports/html_report.py`, standalone offline rendering, embedded CSS, security auto-escaping, and comprehensive tests)
 - PDF report generation (`reports/pdf_report.py`, standalone printable ReportLab rendering, two-pass numbering canvas, and comprehensive tests)
 - backend report download/export API (`POST /api/reports/export`, supporting JSON, HTML, and PDF downloadable attachments, in-memory PDF generation, MIME types, and integration tests)
+- Member 4 backend/reporting work from commit `644ea76` integrated into `develop` by merge commit `fcb7d37` and re-verified
+- **Milestone 1 VERIFIED on `lead/core-engine`:** validated PCAP/PCAPNG/CAP reading through TShark, total packet counting, bidirectional TCP-flow grouping, SMTP/IMAP/POP3 detection, client/server endpoint identification, per-session packet/timestamp metadata, and shared-contract-compatible structured output
+- `PcapAnalysisEngine` implements Member 4's `CoreAnalysisEngine` protocol and is verified through `AnalysisService` dependency injection
 - TShark verification
 - pytest setup
 - project documentation
@@ -630,11 +643,7 @@ test(api): add health endpoint regression test
 
 ### NOT implemented yet
 
-- real PCAP parsing logic
-- SMTP session detection
-- IMAP session detection
-- POP3 session detection
-- session reconstruction
+- application-command/session reconstruction beyond Milestone 1 TCP flow metadata
 - STARTTLS analysis
 - TLS handshake analysis
 - certificate extraction
@@ -643,18 +652,18 @@ test(api): add health endpoint regression test
 - ML model
 - anomaly detection
 - final dashboard
-- integration with actual core-engine output
+- default FastAPI auto-activation of `PcapAnalysisEngine` (the interface and dependency-injection path are verified; the default factory remains deferred)
 - before/after comparison
 
 ---
 
-## 13. Current Milestone — DO THIS NEXT
+## 13. Current Milestone
 
-### Milestone 1
+### Milestone 1 — IMPLEMENTED AND VERIFIED on `lead/core-engine`
 
 > **PCAP → identify SMTP / IMAP / POP3 sessions → structured JSON**
 
-This milestone belongs mainly to the lead/core-engine branch.
+This milestone belongs mainly to the lead/core-engine branch. Its required functionality is implemented and passed the full repository suite plus real-PCAP integration tests on 2026-09-04. It has not yet been merged from `lead/core-engine` back into `develop`.
 
 ### Required output
 
@@ -683,7 +692,7 @@ This milestone belongs mainly to the lead/core-engine branch.
 }
 ```
 
-### Milestone 1 scope
+### Implemented scope
 
 Implement only:
 
@@ -696,6 +705,21 @@ Implement only:
 - basic session metadata
 - structured JSON
 - tests
+
+### Verification
+
+- 23 mocked-packet unit tests cover SMTP, IMAP, POP3, bidirectional grouping, no-email results, invalid/empty inputs, protocol-label detection, all approved well-known-port fallbacks, deterministic contract output, and Member 4 service-boundary compatibility.
+- 3 real-PCAP integration tests generate temporary captures and verify TShark extraction, SMTP bidirectional grouping, a no-email capture, and malformed-capture rejection.
+- Full result: 93 passed with no warnings.
+- Frontend production build and `scripts/check_tshark.py` also pass.
+
+### Known Milestone 1 limitations
+
+- TShark must be installed and available on `PATH`; PyShark/Scapy are not used as a silent production fallback.
+- Protocol labels are accepted only when TShark supplies an explicit SMTP/IMAP/POP token. Otherwise, detection is limited to the approved conventional ports (SMTP 25/465/587, IMAP 143/993, POP3 110/995); a port fallback identifies likely service traffic, not decrypted application payload.
+- Client/server roles prefer the matching conventional server port, then the initial TCP SYN. For nonstandard-port captures that begin mid-session, the first observed direction is the remaining basic heuristic.
+- The controlled real-PCAP tests are small generated captures; broader team-owned fixtures are still needed for fragmented, truncated, IPv6, and large-capture behavior.
+- The backend default engine factory remains deferred. `PcapAnalysisEngine` is contract-compatible and works through explicit `AnalysisService` injection, preserving Member 4's boundary without changing backend ownership code.
 
 ### Do NOT implement yet
 
@@ -713,8 +737,8 @@ Implement only:
 
 ## 14. Planned Milestone Order
 
-1. PCAP → SMTP/IMAP/POP3 sessions → JSON
-2. Session reconstruction + STARTTLS detection
+1. **VERIFIED on lead branch:** PCAP → SMTP/IMAP/POP3 sessions → JSON
+2. **NEXT only after explicit confirmation:** Session reconstruction + STARTTLS detection
 3. TLS handshake metadata extraction
 4. Certificate and crypto feature extraction
 5. Deterministic security rules
@@ -831,11 +855,9 @@ If this file is provided at the beginning of a new chat, the agent should:
 
 ## 20. Immediate Next Action
 
-The current project should now begin:
+> Review and integrate the verified Milestone 1 lead-branch change into `develop`, then collect broader team-owned PCAP fixtures. Begin Milestone 2 (session reconstruction + STARTTLS) only after explicit confirmation.
 
-> **Milestone 1 on `lead/core-engine`: PCAP → identify SMTP/IMAP/POP3 sessions → structured JSON.**
-
-Do not jump ahead to ML, scoring, or dashboard work until the required core output exists.
+Do not start STARTTLS/TLS, ML, scoring, or dashboard work in the current task.
 
 
 ---
@@ -954,6 +976,7 @@ Example:
 2026-09-03 — member4/backend-reports — Implemented and verified PDF report generation.
 2026-09-03 — member4/backend-reports — Implemented backend report download/export API, supporting JSON, HTML, and PDF with full test coverage and API docs.
 2026-09-04 — develop — Integrated and re-verified Member 4 backend/reporting foundation from commit 644ea76.
+2026-09-04 — lead/core-engine — Synchronized with develop at fcb7d37 and implemented verified Milestone 1 TShark PCAP-to-email-session structured output (93 tests passed).
 ```
 
 ---

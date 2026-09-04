@@ -20,7 +20,11 @@ from core.protocols import (
     protocols_from_ports,
 )
 from core.protocols.session_reconstruction import reconstruct_security_state
-from core.tls import extract_tls_handshake
+from core.tls import (
+    extract_crypto_features,
+    extract_tls_certificates,
+    extract_tls_handshake,
+)
 
 AnalysisResult = dict[str, Any]
 
@@ -78,6 +82,14 @@ def build_analysis_result(
             client_ip=client_ip,
             client_port=client_port,
         )
+        certificates = extract_tls_certificates(
+            flow_packets,
+            reference_time=start_time,
+        )
+        if certificates and certificates[0].get("evidence", {}).get("certificate_frame"):
+            tls["evidence"]["certificate_frame"] = certificates[0]["evidence"]["certificate_frame"]
+
+        crypto_features = extract_crypto_features(tls, certificates)
         sessions.append(
             {
                 "session_id": f"{protocol.casefold()}-{counters[protocol]:03d}",
@@ -95,6 +107,8 @@ def build_analysis_result(
                 ],
                 "transport_security": transport_security,
                 "tls": tls,
+                "certificates": certificates,
+                "crypto_features": crypto_features,
             }
         )
 

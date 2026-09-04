@@ -50,6 +50,7 @@ class PacketMetadata:
     tls_change_cipher_spec: bool = False
     tls_alert_level: int | None = None
     tls_alert_description: int | None = None
+    tls_certificates: tuple[bytes, ...] = ()
 
     @property
     def is_tcp(self) -> bool:
@@ -88,6 +89,7 @@ _FIELDS = (
     "tls.change_cipher_spec",
     "tls.alert_message.level",
     "tls.alert_message.desc",
+    "tls.handshake.certificate",
 )
 
 
@@ -196,6 +198,7 @@ def extract_packet_metadata(
                 tls_change_cipher_spec=bool(padded[22]),
                 tls_alert_level=_optional_protocol_int(_first(padded[23])),
                 tls_alert_description=_optional_protocol_int(_first(padded[24])),
+                tls_certificates=_parse_certificates(padded[25]),
             )
         )
 
@@ -257,6 +260,20 @@ def _parse_hex_bytes(value: str) -> bytes:
         raise InvalidCaptureError(
             "TShark returned an invalid TCP payload byte field."
         ) from exc
+
+
+def _parse_certificates(value: str) -> tuple[bytes, ...]:
+    """Parse colon/hex-encoded DER certificate bytes from TShark."""
+    certs: list[bytes] = []
+    for item in value.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            certs.append(bytes.fromhex(item.replace(":", "")))
+        except ValueError:
+            continue
+    return tuple(certs)
 
 
 def _looks_like_tls_record(payload: bytes) -> bool:

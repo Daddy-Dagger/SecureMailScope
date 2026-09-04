@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from core.pcap.tshark_adapter import PacketMetadata
+if TYPE_CHECKING:
+    from core.pcap.tshark_adapter import PacketMetadata
 
 _CLIENT_HELLO = 1
 _SERVER_HELLO = 2

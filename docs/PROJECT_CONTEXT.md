@@ -211,7 +211,7 @@ Milestones 1, 2, 3, and 4 are integrated into `develop`. All 6 member branches w
 - Frontend can reach `/health`
 - CORS works
 - TShark 4.6.8 detected
-- pytest passes (140/140 on 2026-09-04: 67 backend/report tests, 67 core unit tests, and 6 generated real-PCAP integration tests)
+- pytest passes (155/155 on 2026-09-06: 67 backend/report tests, 67 core unit tests, 6 core TShark real-PCAP integration tests, 15 synthetic generator unit tests; 0 failed, 0 skipped with TShark 4.6.8)
 - Python 3.11 environment exists
 - ReportLab 5.0.1 is installed and declared for PDF reporting
 - real-PCAP TShark integration tests pass with generated, temporary fixtures
@@ -642,7 +642,11 @@ test(api): add health endpoint regression test
 - **Milestone 4 X.509 certificate and cryptographic feature extraction:** extracts factual ordered X.509 certificate chains (`chain_index: 0` for leaf), subject/issuer DNs, serial numbers, SHA-256 fingerprints, ISO 8601 UTC validity dates, days remaining relative to forensic capture timestamps, SANs, factual `self_issued` (`subject == issuer`), cryptographically verified `self_signed`, public-key metadata (algorithm, size_bits, curve), signature algorithms, and certificate frame evidence. Aggregates normalized cryptographic feature vectors (`crypto_features`) for downstream rules and ML. Handles missing certificates gracefully (e.g., encrypted TLS 1.3 -> `certificates: []`, `crypto_features` cert fields null).
 - the shared session contract now has additive optional `application_events`, `transport_security`, `tls`, `certificates`, and `crypto_features` fields; the backend Pydantic session model has the minimum corresponding compatibility update while continuing to accept Milestone 1, 2, and 3 session objects
 - `PcapAnalysisEngine` implements Member 4's `CoreAnalysisEngine` protocol and is verified through `AnalysisService` dependency injection
-- TShark verification
+- synthetic test PCAP generator (`scripts/generate_test_data.py`) implementing 11 deterministic captures across 5 scenario suites (`normal`, `weak_tls`, `certificate_issues`, `starttls`, `mixed`) with Scapy post-validation, offline execution, and contract schema verification
+- 15 unit tests in `tests/unit/test_generate_test_data.py` (all passing)
+- end-to-end integration verified: all 11 synthetic PCAPs parsed by host TShark 4.6.8 through `core.pcap.session_builder.analyze_pcap_file` with 100% contract compliance (`AnalysisResultResponse` / `analysis_result_schema.json`)
+- dataset documentation in `datasets/README.md`, `docs/dataset-guide.md`, and `docs/MEMBER2_PCAP_CONTEXT.md`
+- TShark 4.6.8 verified on macOS host (/opt/homebrew/bin/tshark)
 - pytest setup
 - project documentation
 - team ownership model
@@ -1106,6 +1110,8 @@ Example:
 2026-09-04 — develop — Integrated verified Milestone 4 X.509 certificate and cryptographic feature extraction through merge commit 7a930fd and pushed synchronized integration state (140 tests passed).
 2026-09-04 — lead/core-engine — Synchronized with develop at 7a930fd; audited origin/member3/security-rules (clean, 14 commits behind develop, no unmerged rule code); verified core output and contract readiness for Milestone 5 deterministic security rules.
 2026-09-06 — develop — Audited all 6 team branches; integrated lead/core-engine (commit a712bf3 via merge commit b01cd23); verified member2, member3, member5, and member6 have zero unmerged commits and member4 was previously integrated; ran full validation suite (140/140 pytest, frontend build, TShark 4.6.8, Python compileall, schema checks).
+2026-09-06 — member2/pcap-lab — Implemented reproducible synthetic PCAP test-data generator (scripts/generate_test_data.py) across 5 scenarios (normal, weak_tls, certificate_issues, starttls, mixed), added 15 unit tests (149 passed / 6 integration skipped without TShark), updated dataset docs, and added docs/MEMBER2_PCAP_CONTEXT.md.
+2026-09-06 — member2/pcap-lab — Verified synthetic PCAP generator against host TShark 4.6.8 and Core PCAP pipeline; all 155 tests passing (0 skipped, 0 failed); all 11 synthetic PCAPs parsed end-to-end by TShark subprocess with 100% schema contract compliance.
 ```
 
 ---

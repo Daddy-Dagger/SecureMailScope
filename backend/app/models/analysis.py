@@ -263,6 +263,22 @@ class SessionSchema(BaseModel):
     )
 
 
+class FindingEvidence(BaseModel):
+    """Packet or frame reference supporting a security finding."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    frame_number: int | None = Field(
+        default=None,
+        ge=1,
+        description="Frame number where the issue was observed",
+    )
+    observed_value: str | int | float | bool | None = Field(
+        default=None,
+        description="Concrete observed cryptographic or protocol value",
+    )
+
+
 class FindingSchema(BaseModel):
     """Minimal schema definition for security findings identified by rules."""
 
@@ -287,6 +303,14 @@ class FindingSchema(BaseModel):
     recommendation: str = Field(
         ...,
         description="Recommended remediation steps",
+    )
+    session_id: str | None = Field(
+        default=None,
+        description="Optional identifier of the session associated with this finding",
+    )
+    evidence: FindingEvidence | None = Field(
+        default=None,
+        description="Optional frame or packet evidence supporting this finding",
     )
 
 

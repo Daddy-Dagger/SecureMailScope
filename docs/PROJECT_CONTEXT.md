@@ -201,7 +201,7 @@ Remote repository:
 https://github.com/Daddy-Dagger/SecureMailScope.git
 ```
 
-Milestones 1, 2, 3, and 4 are integrated into `develop`. All 6 member branches were audited for completed work: `lead/core-engine` context and Milestone 5 prep was integrated; `member2/pcap-lab`, `member3/security-rules`, `member5/frontend`, and `member6/testing-docs` are clean at initial setup (no unmerged commits); `member4/backend-reports` work was previously fully integrated into `develop`. Milestone 5 (deterministic cryptographic security rules) is the next active milestone assigned to `member3/security-rules`.
+Milestones 1, 2, 3, and 4 are integrated into `develop`. Milestone 5 (deterministic cryptographic security rules) is implemented and verified on `member3/security-rules` with 40 new unit tests (180/180 tests passing).
 
 ### Verified working setup
 
@@ -211,7 +211,7 @@ Milestones 1, 2, 3, and 4 are integrated into `develop`. All 6 member branches w
 - Frontend can reach `/health`
 - CORS works
 - TShark 4.6.8 detected
-- pytest passes (155/155 on 2026-09-06: 67 backend/report tests, 67 core unit tests, 6 core TShark real-PCAP integration tests, 15 synthetic generator unit tests; 0 failed, 0 skipped with TShark 4.6.8)
+- pytest passes (195/195 on 2026-09-13: 67 backend/report tests, 67 core unit tests, 6 core TShark real-PCAP integration tests, 15 synthetic generator unit tests, and 40 deterministic security rule unit tests; 0 failed, 0 skipped with TShark 4.6.8)
 - Python 3.11 environment exists
 - ReportLab 5.0.1 is installed and declared for PDF reporting
 - real-PCAP TShark integration tests pass with generated, temporary fixtures
@@ -296,6 +296,7 @@ SecureMailScope/
 │   ├── rules/
 │   │   ├── tls_rules.py
 │   │   ├── certificate_rules.py
+│   │   ├── engine.py
 │   │   └── scoring.py
 │   └── ml/
 │       ├── features.py
@@ -352,7 +353,10 @@ SecureMailScope/
     ├── unit/
     │   ├── test_core_pcap_sessions.py
     │   ├── test_starttls_reconstruction.py
-    │   └── test_tls_handshake.py
+    │   ├── test_tls_handshake.py
+    │   ├── test_tls_certificate.py
+    │   ├── test_crypto_features.py
+    │   └── test_security_rules.py
     └── e2e/
 ```
 
@@ -641,6 +645,8 @@ test(api): add health endpoint regression test
 - **Milestone 1, 2, 3, and 4 INTEGRATED into `develop`:** Milestone 4 commit `99f57e3` was merged into `develop` through merge commit `7a930fd`, re-verified with 140 tests plus frontend production build, TShark 4.6.8, python compileall, schema checks, and `git diff --check`, and pushed to `origin/develop` and `origin/lead/core-engine`.
 - **Milestone 4 X.509 certificate and cryptographic feature extraction:** extracts factual ordered X.509 certificate chains (`chain_index: 0` for leaf), subject/issuer DNs, serial numbers, SHA-256 fingerprints, ISO 8601 UTC validity dates, days remaining relative to forensic capture timestamps, SANs, factual `self_issued` (`subject == issuer`), cryptographically verified `self_signed`, public-key metadata (algorithm, size_bits, curve), signature algorithms, and certificate frame evidence. Aggregates normalized cryptographic feature vectors (`crypto_features`) for downstream rules and ML. Handles missing certificates gracefully (e.g., encrypted TLS 1.3 -> `certificates: []`, `crypto_features` cert fields null).
 - the shared session contract now has additive optional `application_events`, `transport_security`, `tls`, `certificates`, and `crypto_features` fields; the backend Pydantic session model has the minimum corresponding compatibility update while continuing to accept Milestone 1, 2, and 3 session objects
+- **Milestone 5 VERIFIED on `member3/security-rules`:** implemented deterministic cryptographic and transport security rules. Evaluates structured session objects without parsing PCAPs directly. Covers deprecated TLS versions (TLS 1.0, 1.1 per RFC 8996), weak/deprecated cipher suites (NULL, export, anonymous, RC4, 3DES, MD5 MAC), fatal TLS handshake alert failures, Perfect Forward Secrecy posture (ECDHE/DHE supported, static RSA lack of FS), STARTTLS/STLS transition states (advertised unused, rejected, incomplete, plaintext session, implicit TLS distinction, POP3 STLS), and X.509 certificate rules (expired relative to reference time, not yet valid, weak RSA/DSA keys < 2048 bits, MD5/SHA-1 deprecated signatures, verified self-signed only when `self_signed == True`). Findings cite stable finding_id, title, severity (CRITICAL, HIGH, MEDIUM, LOW, INFO), explanation, recommendation, session_id, and frame evidence. Tolerates absent or incomplete certificate data (e.g. encrypted TLS 1.3) without generating speculative findings. Backed by 40 comprehensive positive and negative unit tests.
+- shared `finding_schema.json` and backend `FindingSchema` updated with backward-compatible optional `session_id` and `evidence` (`frame_number`, `observed_value`) fields
 - `PcapAnalysisEngine` implements Member 4's `CoreAnalysisEngine` protocol and is verified through `AnalysisService` dependency injection
 - synthetic test PCAP generator (`scripts/generate_test_data.py`) implementing 11 deterministic captures across 5 scenario suites (`normal`, `weak_tls`, `certificate_issues`, `starttls`, `mixed`) with Scapy post-validation, offline execution, and contract schema verification
 - 15 unit tests in `tests/unit/test_generate_test_data.py` (all passing)
@@ -658,7 +664,6 @@ test(api): add health endpoint regression test
 
 ### NOT implemented yet
 
-- deterministic security rules
 - risk scoring
 - ML model
 - anomaly detection
@@ -841,7 +846,6 @@ Milestones 1, 2, 3, and 4 are integrated into `develop` (Milestone 4 merged at `
 
 ### Do NOT implement yet
 
-- deterministic security rules (weak ciphers, deprecated TLS, expired certs)
 - security scoring
 - ML
 - anomaly detection
@@ -849,13 +853,22 @@ Milestones 1, 2, 3, and 4 are integrated into `develop` (Milestone 4 merged at `
 - report redesign
 - database persistence
 
-### Milestone 5 Preparation — Deterministic Cryptographic Security Rules
+### Milestone 5 — VERIFIED on `member3/security-rules`
 
-- **Ownership:** `member3/security-rules` owns `core/rules/` and rule implementation.
-- **Member 3 branch audit:** `origin/member3/security-rules` is currently clean at initial commit `ceccb41` (14 commits behind `develop`), with zero unmerged rule commits.
-- **Lead preparation:** `lead/core-engine` has delivered and verified all upstream inputs: protocol identification, STARTTLS transition states, TLS handshake metadata, ordered X.509 certificate chains, and normalized `crypto_features`.
-- **Contract readiness:** `shared/contracts/finding_schema.json` and backend `FindingSchema` are ready for deterministic findings (`finding_id`, `title`, `severity`, `explanation`, `recommendation`). Proposing minimal backward-compatible addition of optional `session_id` and `evidence` (`frame_number`, `observed_value`) to allow linking findings to session and frame evidence without breaking contract validation.
-- **Next step for Member 3:** Synchronize `member3/security-rules` with latest `develop` (at `7a930fd`) and implement deterministic security rules and unit tests on `member3/security-rules`.
+> **Structured session analysis output → evaluate deterministic cryptographic and transport security rules → emit evidence-linked findings**
+
+Milestone 5 is implemented and verified on `member3/security-rules`. All 40 positive and negative unit tests pass cleanly, and full repository test suite is at 180/180 passing tests. Ready for Draft PR and integration into `develop`.
+
+### Implemented scope
+
+- TLS protocol version checks: deprecated TLS 1.0 (`TLS-DEPRECATED-1.0`, HIGH) and TLS 1.1 (`TLS-DEPRECATED-1.1`, HIGH); modern TLS 1.2/1.3 produce no finding
+- Cipher suite checks: known weak/deprecated cipher suites (`TLS-WEAK-CIPHER`), including NULL encryption (CRITICAL), export-grade (CRITICAL), anonymous/unauthenticated (CRITICAL), RC4 stream cipher (HIGH), 3DES 64-bit block cipher (HIGH), and MD5 MAC (HIGH); modern AEAD ciphers produce no finding; unknown ciphers produce no unsupported finding
+- Fatal TLS handshake check: alert failure during handshake negotiation (`TLS-HANDSHAKE-FATAL`, HIGH)
+- Perfect Forward Secrecy check: ephemeral key exchange (`TLS-FORWARD-SECRECY-SUPPORTED`, INFO); static RSA key exchange lack of forward secrecy (`TLS-NO-FORWARD-SECRECY`, MEDIUM); unknown key exchange produces no unsupported finding
+- Transport security / STARTTLS checks: STARTTLS advertised but unused (`STARTTLS-ADVERTISED-NOT-USED`, MEDIUM), STARTTLS upgrade rejected (`STARTTLS-REJECTED`, HIGH), incomplete upgrade transition (`STARTTLS-INCOMPLETE`, HIGH), unencrypted cleartext session (`TRANSPORT-PLAINTEXT-SESSION`, HIGH); implicit TLS sessions on dedicated ports (465, 993, 995) are protected from false positives; POP3 STLS handled with appropriate command naming
+- X.509 certificate checks: expired certificate relative to forensic capture reference timestamp (`CERT-EXPIRED`, HIGH), not-yet-valid certificate (`CERT-NOT-YET-VALID`, HIGH), weak RSA key size < 2048 bits (`CERT-WEAK-RSA-KEY`, HIGH), weak DSA key size < 2048 bits (`CERT-WEAK-DSA-KEY`, HIGH), deprecated MD5 signature (`CERT-SIG-MD5`, CRITICAL), deprecated SHA-1 signature (`CERT-SIG-SHA1`, HIGH), verified self-signed certificate (`CERT-SELF-SIGNED`, MEDIUM); self-issued certificates that are not self-signed produce no false positive; missing certificate data (e.g. encrypted TLS 1.3) produces no false certificate findings
+- Contract compliance: findings include stable `finding_id`, `title`, `severity` (CRITICAL, HIGH, MEDIUM, LOW, INFO), `explanation`, `recommendation`, `session_id`, and `evidence` (`frame_number`, `observed_value`); validated against `shared/contracts/finding_schema.json` and backend `FindingSchema`
+- Orchestrator: `evaluate_session_rules`, `evaluate_rules` (deterministic sorting by severity, session_id, finding_id), and `evaluate_analysis_result` in `core/rules/`
 
 ---
 
@@ -865,8 +878,8 @@ Milestones 1, 2, 3, and 4 are integrated into `develop` (Milestone 4 merged at `
 2. **INTEGRATED into develop:** Session reconstruction + STARTTLS/STLS and implicit-TLS detection
 3. **INTEGRATED into develop:** TLS handshake metadata extraction
 4. **INTEGRATED into develop:** X.509 certificate and cryptographic feature extraction
-5. **NEXT / IN-PROGRESS on `member3/security-rules`:** Deterministic security rules
-6. Generate controlled PCAP dataset
+5. **VERIFIED on `member3/security-rules`:** Deterministic security rules (ready for PR/integration into develop)
+6. **NEXT:** Generate controlled PCAP dataset
 7. Risk scoring
 8. ML feature dataset + Isolation Forest anomaly detection
 9. Backend integration
@@ -979,11 +992,9 @@ If this file is provided at the beginning of a new chat, the agent should:
 
 ## 20. Immediate Next Action
 
-> Synchronize `member3/security-rules` with latest `develop` (at `7a930fd`), then begin Milestone 5: deterministic cryptographic security rules on `member3/security-rules`.
+> Open/update Draft PR for `member3/security-rules` to merge into `develop`, review and integrate Milestone 5 into `develop`. Then proceed to Milestone 6: controlled PCAP dataset generation.
 
-`lead/core-engine` has delivered all necessary upstream inputs (protocol detection, STARTTLS states, TLS handshake metadata, X.509 certificate chains, and normalized crypto features) and verified shared contract readiness. No unmerged rule code exists on `origin/member3/security-rules`.
-Do not implement risk scoring or ML yet.
-
+All deterministic cryptographic and transport security rules have been implemented and verified on `member3/security-rules` with 40 new unit tests (180/180 pytest suite passing). Shared contracts (`finding_schema.json`) and backend models were updated with backward-compatible evidence linking.
 
 ---
 
@@ -1112,6 +1123,7 @@ Example:
 2026-09-06 — develop — Audited all 6 team branches; integrated lead/core-engine (commit a712bf3 via merge commit b01cd23); verified member2, member3, member5, and member6 have zero unmerged commits and member4 was previously integrated; ran full validation suite (140/140 pytest, frontend build, TShark 4.6.8, Python compileall, schema checks).
 2026-09-06 — member2/pcap-lab — Implemented reproducible synthetic PCAP test-data generator (scripts/generate_test_data.py) across 5 scenarios (normal, weak_tls, certificate_issues, starttls, mixed), added 15 unit tests (149 passed / 6 integration skipped without TShark), updated dataset docs, and added docs/MEMBER2_PCAP_CONTEXT.md.
 2026-09-06 — member2/pcap-lab — Verified synthetic PCAP generator against host TShark 4.6.8 and Core PCAP pipeline; all 155 tests passing (0 skipped, 0 failed); all 11 synthetic PCAPs parsed end-to-end by TShark subprocess with 100% schema contract compliance.
+2026-09-13 — member3/security-rules — Implemented and verified Milestone 5 deterministic cryptographic and transport security rules with 40 new unit tests (180/180 total tests passed).
 ```
 
 ---

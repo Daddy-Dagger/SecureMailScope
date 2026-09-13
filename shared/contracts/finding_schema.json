@@ -24,6 +24,26 @@
     "recommendation": {
       "type": "string",
       "description": "Recommended remediation steps"
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "description": "Optional identifier of the session associated with this finding"
+    },
+    "evidence": {
+      "type": ["object", "null"],
+      "description": "Optional frame or packet evidence supporting this finding",
+      "properties": {
+        "frame_number": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Frame number where the issue was observed"
+        },
+        "observed_value": {
+          "type": ["string", "number", "boolean", "null"],
+          "description": "Concrete observed cryptographic or protocol value"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
@@ -40,7 +60,12 @@
       "title": "Deprecated TLS version",
       "severity": "HIGH",
       "explanation": "The session used an outdated TLS version.",
-      "recommendation": "Disable outdated TLS versions."
+      "recommendation": "Disable outdated TLS versions.",
+      "session_id": "smtp-001",
+      "evidence": {
+        "frame_number": 22,
+        "observed_value": "TLS 1.0"
+      }
     }
   ]
 }

@@ -91,9 +91,20 @@ Both fields are optional, preserving backward compatibility with Milestones 1–
   "title": "Deprecated TLS version",
   "severity": "HIGH",
   "explanation": "The session used an outdated TLS version.",
-  "recommendation": "Disable outdated TLS versions."
+  "recommendation": "Disable outdated TLS versions.",
+  "session_id": "smtp-001",
+  "evidence": {
+    "frame_number": 22,
+    "observed_value": "TLS 1.0"
+  }
 }
 ```
+
+Milestone 5 adds optional `session_id` and `evidence` (`frame_number`, `observed_value`)
+fields to support evidence-linked findings back to specific network sessions and packet
+frames. These fields are optional in the JSON Schema to maintain backward compatibility
+with existing finding objects.
+
 
 ### Analysis Result Schema Example
 
